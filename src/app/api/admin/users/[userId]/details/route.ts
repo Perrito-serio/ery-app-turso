@@ -5,7 +5,7 @@ import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-// --- Interfaces (sin cambios) ---
+// --- Interfaces ---
 interface UserDetails {
   id: number;
   nombre: string;
@@ -14,6 +14,13 @@ interface UserDetails {
 }
 interface TargetUserRoles {
   nombre_rol: string;
+}
+
+// Interfaz para el contexto de la ruta
+interface RouteContext {
+  params: {
+    userId: string;
+  };
 }
 
 // --- Zod Schema (sin cambios) ---
@@ -27,12 +34,13 @@ const updateUserSchema = z.object({
 });
 
 // --- GET: Obtener detalles del usuario ---
-// CORRECCIÓN: Se cambia la firma de la función para que sea compatible con Vercel/Next.js build.
-export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
+// CORRECCIÓN: Se ajusta la firma de la función.
+export async function GET(request: NextRequest, context: RouteContext) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
-  const targetUserId = parseInt(params.userId, 10);
+  // CORRECCIÓN: Se accede a los params a través de context.
+  const targetUserId = parseInt(context.params.userId, 10);
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a obtener es inválido.' }, { status: 400 });
   }
@@ -73,12 +81,13 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
 
 
 // --- PUT: Actualizar detalles del usuario ---
-// CORRECCIÓN: Se cambia la firma de la función para que sea compatible con Vercel/Next.js build.
-export async function PUT(request: NextRequest, { params }: { params: { userId: string } }) {
+// CORRECCIÓN: Se ajusta la firma de la función.
+export async function PUT(request: NextRequest, context: RouteContext) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
-  const targetUserId = parseInt(params.userId, 10);
+  // CORRECCIÓN: Se accede a los params a través de context.
+  const targetUserId = parseInt(context.params.userId, 10);
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
   }
