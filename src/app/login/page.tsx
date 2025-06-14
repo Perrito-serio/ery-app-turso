@@ -1,10 +1,10 @@
 // src/app/login/page.tsx
 'use client';
 
-import React, { useState, ChangeEvent, FormEvent, useCallback, useEffect } from 'react';
+import React, { useState, ChangeEvent, FormEvent, useCallback, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react'; // 1. Solo necesitamos signIn de NextAuth
+import { signIn } from 'next-auth/react';
 
 // --- Interfaces y componente FormField (se mantienen igual) ---
 interface LoginFormData {
@@ -36,15 +36,15 @@ const FormField: React.FC<FormFieldProps> = ({ label, name, type = 'text', value
 );
 
 
-export default function LoginPage() {
+// --- 1. Se extrae la lógica del formulario a un componente hijo ---
+function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // Hook para leer errores de la URL
+  const searchParams = useSearchParams(); // El hook que causa el problema
   const [formData, setFormData] = useState<LoginFormData>({ email: '', password: '' });
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // 2. useEffect para mostrar errores que NextAuth pueda pasar en la URL
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
@@ -60,18 +60,16 @@ export default function LoginPage() {
   const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setApiError(null); // Limpiar errores al escribir
+    setApiError(null);
   }, []);
 
-  // 3. handleSubmit actualizado para usar signIn('credentials')
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setApiError(null);
 
-    // Llamar a signIn de NextAuth para el proveedor 'credentials'
     const result = await signIn('credentials', {
-      redirect: false, // No redirigir automáticamente, manejaremos la respuesta nosotros
+      redirect: false,
       email: formData.email,
       password: formData.password,
     });
@@ -79,11 +77,8 @@ export default function LoginPage() {
     setIsLoading(false);
 
     if (result?.ok) {
-      // Si el login es exitoso, redirigir a la página principal
       router.push('/');
     } else {
-      // Si hay un error, NextAuth lo devuelve en result.error.
-      // Lo establecemos en el estado para mostrarlo en la UI.
       if (result?.error) {
         const errorMessages: Record<string, string> = {
             CredentialsSignin: 'Credenciales inválidas. Por favor, inténtelo de nuevo.',
@@ -100,6 +95,7 @@ export default function LoginPage() {
     signIn('google', { callbackUrl: '/' }); 
   };
 
+  // El JSX del formulario se mantiene aquí
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -118,7 +114,6 @@ export default function LoginPage() {
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-600" /></div>
             <div className="relative flex justify-center text-sm"><span className="px-2 bg-gray-800 text-gray-400">O iniciar sesión con email</span></div>
           </div>
-          {/* 4. Mostrar el nuevo estado de error de la API */}
           {apiError && (<div className="p-3 rounded-md bg-red-600 text-white text-sm mb-4">{apiError}</div>)}
           <form onSubmit={handleSubmit} className="space-y-6">
             <FormField label="Correo Electrónico" name="email" type="email" value={formData.email} error={errors.email} onChange={handleChange} />
@@ -134,5 +129,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// --- 2. El componente principal que se exporta AHORA envuelve todo en Suspense ---
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
