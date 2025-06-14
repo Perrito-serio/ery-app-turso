@@ -5,7 +5,7 @@ import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-// --- Interfaces ---
+// --- Interfaces (sin cambios) ---
 interface UserDetails {
   id: number;
   nombre: string;
@@ -14,13 +14,6 @@ interface UserDetails {
 }
 interface TargetUserRoles {
   nombre_rol: string;
-}
-
-// Interfaz para el contexto de la ruta
-interface RouteContext {
-  params: {
-    userId: string;
-  };
 }
 
 // --- Zod Schema (sin cambios) ---
@@ -34,13 +27,15 @@ const updateUserSchema = z.object({
 });
 
 // --- GET: Obtener detalles del usuario ---
-// CORRECCIÓN: Se ajusta la firma de la función.
-export async function GET(request: NextRequest, context: RouteContext) {
+// CORRECCIÓN: Se recibe el contexto completo en lugar de desestructurar en la firma.
+export async function GET(request: NextRequest, context: { params: { userId: string } }) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
-  // CORRECCIÓN: Se accede a los params a través de context.
-  const targetUserId = parseInt(context.params.userId, 10);
+  // Se extraen los parámetros del contexto dentro de la función.
+  const { params } = context;
+  const targetUserId = parseInt(params.userId, 10);
+
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a obtener es inválido.' }, { status: 400 });
   }
@@ -81,13 +76,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 
 // --- PUT: Actualizar detalles del usuario ---
-// CORRECCIÓN: Se ajusta la firma de la función.
-export async function PUT(request: NextRequest, context: RouteContext) {
+// CORRECCIÓN: Se recibe el contexto completo en lugar de desestructurar en la firma.
+export async function PUT(request: NextRequest, context: { params: { userId: string } }) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
-  // CORRECCIÓN: Se accede a los params a través de context.
-  const targetUserId = parseInt(context.params.userId, 10);
+  // Se extraen los parámetros del contexto dentro de la función.
+  const { params } = context;
+  const targetUserId = parseInt(params.userId, 10);
+
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
   }
