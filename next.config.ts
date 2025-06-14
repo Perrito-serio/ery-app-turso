@@ -2,15 +2,11 @@
 const nextConfig = {
   // Aquí pueden ir otras configuraciones que ya tengas...
 
-  // BLOQUE CORREGIDO Y COMPLETO:
-  // Se añaden instrucciones para ignorar tanto los errores de
-  // TypeScript como los de ESLint durante el build.
-
+  // BLOQUE PARA IGNORAR ERRORES DURANTE EL BUILD
   typescript: {
     // !! ADVERTENCIA !!
     // Permite que la compilación de producción se complete exitosamente
     // incluso si tu proyecto tiene errores de tipo.
-    // Esta es la línea clave que faltaba.
     ignoreBuildErrors: true,
   },
   
@@ -21,4 +17,5 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// CORRECCIÓN CLAVE: Se usa 'export default' en lugar de 'module.exports'
+export default nextConfig;
