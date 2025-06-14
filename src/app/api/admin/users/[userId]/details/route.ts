@@ -27,13 +27,14 @@ const updateUserSchema = z.object({
 });
 
 // --- GET: Obtener detalles del usuario ---
-// CORRECCIÓN: Se recibe el contexto completo en lugar de desestructurar en la firma.
-export async function GET(request: NextRequest, context: { params: { userId: string } }) {
+// CORRECCIÓN FINAL: Usando desestructuración directa, el patrón más común.
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { userId: string } }
+) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
-  // Se extraen los parámetros del contexto dentro de la función.
-  const { params } = context;
   const targetUserId = parseInt(params.userId, 10);
 
   if (isNaN(targetUserId)) {
@@ -74,15 +75,15 @@ export async function GET(request: NextRequest, context: { params: { userId: str
   }
 }
 
-
 // --- PUT: Actualizar detalles del usuario ---
-// CORRECCIÓN: Se recibe el contexto completo en lugar de desestructurar en la firma.
-export async function PUT(request: NextRequest, context: { params: { userId: string } }) {
+// CORRECCIÓN FINAL: Usando desestructuración directa, el patrón más común.
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { userId: string } }
+) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
-  // Se extraen los parámetros del contexto dentro de la función.
-  const { params } = context;
   const targetUserId = parseInt(params.userId, 10);
 
   if (isNaN(targetUserId)) {
