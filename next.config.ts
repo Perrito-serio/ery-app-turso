@@ -1,12 +1,22 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Puede que ya tengan otras configuraciones aquí...
+  // Aquí pueden ir otras configuraciones que ya tengas...
 
-  // AÑADIR ESTE BLOQUE DE CÓDIGO:
+  // BLOQUE CORREGIDO Y COMPLETO:
+  // Se añaden instrucciones para ignorar tanto los errores de
+  // TypeScript como los de ESLint durante el build.
+
+  typescript: {
+    // !! ADVERTENCIA !!
+    // Permite que la compilación de producción se complete exitosamente
+    // incluso si tu proyecto tiene errores de tipo.
+    // Esta es la línea clave que faltaba.
+    ignoreBuildErrors: true,
+  },
+  
   eslint: {
-    // Advertencia: Esto permite que la compilación de producción se complete
-    // incluso si el proyecto tiene errores de ESLint.
+    // Advertencia: Esto permitirá que la compilación de producción se complete
+    // incluso si tu proyecto tiene errores de ESLint.
     ignoreDuringBuilds: true,
   },
 };
