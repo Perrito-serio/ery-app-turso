@@ -5,7 +5,7 @@ import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-// --- Interfaces (limpiadas de dependencias de mysql2) ---
+// --- Interfaces (sin cambios) ---
 interface UserDetails {
   id: number;
   nombre: string;
@@ -15,13 +15,8 @@ interface UserDetails {
 interface TargetUserRoles {
   nombre_rol: string;
 }
-interface RouteContext {
-  params: {
-    userId: string;
-  };
-}
 
-// --- Zod Schema para PUT (sin cambios) ---
+// --- Zod Schema (sin cambios) ---
 const updateUserSchema = z.object({
   nombre: z.string().min(3).regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/).optional(),
   apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/).optional(),
@@ -32,12 +27,12 @@ const updateUserSchema = z.object({
 });
 
 // --- GET: Obtener detalles del usuario ---
-export async function GET(request: NextRequest, context: RouteContext) {
+// CORRECCIÓN: Se cambia la firma de la función para que sea compatible con Vercel/Next.js build.
+export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
-  const { userId: targetUserIdString } = context.params;
-  const targetUserId = parseInt(targetUserIdString, 10);
+  const targetUserId = parseInt(params.userId, 10);
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a obtener es inválido.' }, { status: 400 });
   }
@@ -52,7 +47,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const targetRoles = targetUserRolesRs.rows.map(r => (r as unknown as TargetUserRoles).nombre_rol);
       
       if (targetRoles.includes('administrador') || targetRoles.includes('moderador_contenido')) {
-        return NextResponse.json({ message: 'Acceso denegado: Un moderador no puede ver los detalles de otros moderadores o administradores.' }, { status: 403 });
+        return NextResponse.json({ message: 'Acceso denegado: Un moderador no puede ver los detalles de otros usuarios privilegiados.' }, { status: 403 });
       }
     } catch (error) {
         return NextResponse.json({ message: 'Error al verificar los permisos sobre el usuario objetivo.' }, { status: 500 });
@@ -78,19 +73,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 
 // --- PUT: Actualizar detalles del usuario ---
-export async function PUT(request: NextRequest, context: RouteContext) {
+// CORRECCIÓN: Se cambia la firma de la función para que sea compatible con Vercel/Next.js build.
+export async function PUT(request: NextRequest, { params }: { params: { userId: string } }) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
-  const { userId: targetUserIdString } = context.params;
-  const targetUserId = parseInt(targetUserIdString, 10);
+  const targetUserId = parseInt(params.userId, 10);
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
   }
 
-  // Lógica de permisos sin cambios
   const requesterIsAdmin = session?.user?.roles?.includes('administrador');
-  if (!requesterIsAdmin) { /* ... (misma lógica de negocio que en GET) ... */ }
+  if (!requesterIsAdmin) { /* ... */ }
 
   let body;
   try { body = await request.json(); } 
@@ -105,7 +99,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     const updateFields: string[] = [];
-    const updateValues: (string | number | null)[] = [];
+    const updateValues: (string | number | boolean | null)[] = [];
 
     if (nombre) { updateFields.push('nombre = ?'); updateValues.push(nombre); }
     if (apellido !== undefined) { updateFields.push('apellido = ?'); updateValues.push(apellido || null); }
