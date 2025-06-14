@@ -2,10 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { z } from 'zod';
 
-// Esquema de validación con Zod (sin cambios)
+// --- Esquema de validación con Zod (sin cambios) ---
 const registerSchema = z.object({
   nombre: z.string()
     .min(3, { message: "El nombre debe tener al menos 3 caracteres." })
@@ -26,12 +25,11 @@ const registerSchema = z.object({
   pais: z.string().max(100).optional().or(z.literal('')),
 });
 
-// Interfaces
-interface ExistingUser extends RowDataPacket {
+// --- Interfaces (limpiadas de dependencias de mysql2) ---
+interface ExistingUser {
   id: number;
 }
-// Nueva interfaz para obtener el ID de un rol
-interface RoleId extends RowDataPacket {
+interface RoleId {
     id: number;
 }
 
@@ -58,56 +56,56 @@ export async function POST(request: NextRequest) {
   const { nombre, apellido, email, password, fecha_nacimiento, telefono, direccion, ciudad, pais } = validation.data;
 
   try {
-    const existingUserResults = await query<ExistingUser[]>('SELECT id FROM usuarios WHERE email = ?', [email]);
-    if (existingUserResults.length > 0) {
+    const existingUserRs = await query({
+        sql: 'SELECT id FROM usuarios WHERE email = ?',
+        args: [email]
+    });
+    if (existingUserRs.rows.length > 0) {
       return NextResponse.json({ message: 'El correo electrónico ya está registrado.' }, { status: 409 });
     }
 
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    const sqlInsert = `
-      INSERT INTO usuarios (nombre, apellido, email, password_hash, fecha_nacimiento, telefono, direccion, ciudad, pais, activo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    const paramsInsert = [
-        nombre, 
-        apellido || null, 
-        email, 
-        password_hash, 
-        fecha_nacimiento || null, 
-        telefono || null, 
-        direccion || null, 
-        ciudad || null, 
-        pais || null, 
-        true
-    ];
+    const result = await query({
+        sql: `
+          INSERT INTO usuarios (nombre, apellido, email, password_hash, fecha_nacimiento, telefono, direccion, ciudad, pais, activo)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        args: [
+            nombre, 
+            apellido || null, 
+            email, 
+            password_hash, 
+            fecha_nacimiento || null, 
+            telefono || null, 
+            direccion || null, 
+            ciudad || null, 
+            pais || null, 
+            1 // 1 para TRUE en SQLite
+        ]
+    });
 
-    const result = await query<ResultSetHeader>(sqlInsert, paramsInsert);
-
-    if (result.affectedRows === 1 && result.insertId) {
-      const newUserId = result.insertId;
+    if (result.rowsAffected === 1 && result.lastInsertRowid) {
+      const newUserId = Number(result.lastInsertRowid);
       console.log(`Nuevo usuario creado con Email. ID: ${newUserId}`);
 
-      // --- INICIO: LÓGICA DE ASIGNACIÓN DE ROL POR DEFECTO ---
       try {
-        // 1. Buscar el ID del rol 'usuario_estandar'
-        const roleResults = await query<RoleId[]>("SELECT id FROM roles WHERE nombre_rol = 'usuario_estandar' LIMIT 1");
+        const roleRs = await query({sql: "SELECT id FROM roles WHERE nombre_rol = 'usuario_estandar' LIMIT 1"});
         
-        if (roleResults.length > 0) {
-          const standardRoleId = roleResults[0].id;
-          // 2. Insertar la asignación en la tabla usuario_roles
-          await query("INSERT INTO usuario_roles (usuario_id, rol_id) VALUES (?, ?)", [newUserId, standardRoleId]);
+        if (roleRs.rows.length > 0) {
+          const standardRoleId = (roleRs.rows[0] as unknown as RoleId).id;
+          await query({
+              sql: "INSERT INTO usuario_roles (usuario_id, rol_id) VALUES (?, ?)",
+              args: [newUserId, standardRoleId]
+            });
           console.log(`Rol 'usuario_estandar' asignado al nuevo usuario ID: ${newUserId}`);
         } else {
-          // Esto es importante loguearlo por si el rol no existiera en la BD
           console.warn("ADVERTENCIA: No se encontró el rol 'usuario_estandar'. El nuevo usuario no tendrá roles por defecto.");
         }
       } catch (roleError) {
-        // Loguear el error pero no impedir el registro si solo falla la asignación de rol
         console.error(`Error al asignar rol por defecto al usuario ID ${newUserId}:`, roleError);
       }
-      // --- FIN: LÓGICA DE ASIGNACIÓN DE ROL POR DEFECTO ---
 
       const newUser = {
         id: newUserId,
@@ -123,7 +121,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const typedError = error as { message?: string; code?: string; };
     console.error('Error en /api/auth/register:', typedError);
-    if (typedError.code === 'ER_DUP_ENTRY') {
+    if (typedError.code === 'SQLITE_CONSTRAINT') {
         return NextResponse.json({ message: 'El correo electrónico ya está registrado (error de BD).' }, { status: 409 });
     }
     return NextResponse.json({ message: 'Error interno del servidor.', errorDetails: typedError.message }, { status: 500 });

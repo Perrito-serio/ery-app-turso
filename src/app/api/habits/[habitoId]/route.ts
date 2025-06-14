@@ -2,11 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyApiAuth } from '@/lib/apiAuthUtils';
 import { query } from '@/lib/db';
-import { RowDataPacket, OkPacket } from 'mysql2';
 import { z } from 'zod';
 
-// Esquema de Zod para la validación al editar un hábito
-// Es similar al de creación, pero todos los campos son opcionales.
+// Esquema de Zod (sin cambios)
 const updateHabitSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido.").max(255).optional(),
   descripcion: z.string().optional().nullable(),
@@ -50,16 +48,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   const { nombre, descripcion, meta_objetivo } = validation.data;
 
   try {
-    // 1. Verificar que el hábito pertenezca al usuario autenticado antes de actualizar
-    const habitCheck = await query<RowDataPacket[]>('SELECT usuario_id FROM habitos WHERE id = ?', [numericHabitoId]);
-    if (habitCheck.length === 0) {
+    const habitCheckRs = await query({
+        sql: 'SELECT usuario_id FROM habitos WHERE id = ?',
+        args: [numericHabitoId]
+    });
+    if (habitCheckRs.rows.length === 0) {
       return NextResponse.json({ message: `Hábito con ID ${numericHabitoId} no encontrado.` }, { status: 404 });
     }
-    if (habitCheck[0].usuario_id !== userId) {
+    if ((habitCheckRs.rows[0] as any).usuario_id !== userId) {
       return NextResponse.json({ message: 'Acceso denegado. No tienes permiso para editar este hábito.' }, { status: 403 });
     }
 
-    // 2. Construir y ejecutar la consulta de actualización
     const updateFields: string[] = [];
     const updateValues: (string | number | null)[] = [];
 
@@ -74,7 +73,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const sqlSetClause = updateFields.join(', ');
     updateValues.push(numericHabitoId);
 
-    await query<OkPacket>(`UPDATE habitos SET ${sqlSetClause} WHERE id = ?`, updateValues);
+    await query({
+        sql: `UPDATE habitos SET ${sqlSetClause} WHERE id = ?`,
+        args: updateValues
+    });
 
     return NextResponse.json({ message: "Hábito actualizado exitosamente." });
 
@@ -105,16 +107,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   console.log(`Usuario ID: ${userId} está intentando eliminar el hábito ID: ${numericHabitoId}`);
 
   try {
-    // 1. Verificar que el hábito pertenezca al usuario autenticado antes de eliminarlo
-    const habitCheck = await query<RowDataPacket[]>('SELECT usuario_id FROM habitos WHERE id = ? AND usuario_id = ?', [numericHabitoId, userId]);
-    if (habitCheck.length === 0) {
-      // El hábito no existe o no pertenece al usuario, devolvemos 404 para no dar información de más.
+    const deleteRs = await query({
+        sql: 'DELETE FROM habitos WHERE id = ? AND usuario_id = ?',
+        args: [numericHabitoId, userId]
+    });
+    
+    if (deleteRs.rowsAffected === 0) {
       return NextResponse.json({ message: `Hábito con ID ${numericHabitoId} no encontrado o no tienes permiso para eliminarlo.` }, { status: 404 });
     }
-
-    // 2. Eliminar el hábito. Gracias a `ON DELETE CASCADE` en la base de datos,
-    // todos los registros asociados en `registros_habitos` también se eliminarán.
-    await query<OkPacket>('DELETE FROM habitos WHERE id = ?', [numericHabitoId]);
 
     return NextResponse.json({ message: "Hábito eliminado exitosamente." }, { status: 200 });
 

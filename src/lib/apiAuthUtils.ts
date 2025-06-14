@@ -1,22 +1,23 @@
 // src/lib/apiAuthUtils.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Importamos las opciones de NextAuth
+import { getServerSession, Session } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-// Interfaz para la sesión que esperamos, incluyendo nuestros campos personalizados
-interface AppSession {
-  user?: {
+// Se ajusta la interfaz para que coincida con la estructura que definimos en [...nextauth]
+// CORRECCIÓN: La propiedad `user` no debe ser opcional, ya que la Session base la requiere.
+// Las propiedades *dentro* de user sí pueden ser opcionales.
+interface AppSession extends Session {
+  user: {
     id?: number;
     name?: string | null;
     email?: string | null;
     image?: string | null;
     roles?: string[];
   };
-  expires: string;
 }
 
 interface AuthResult {
-  session: AppSession | null; // Devolveremos la sesión completa
+  session: AppSession | null;
   errorResponse: NextResponse | null;
 }
 
@@ -28,11 +29,10 @@ interface AuthResult {
 export async function verifyApiAuth(
   requiredRoles: string[] = []
 ): Promise<AuthResult> {
-  // Obtener la sesión del servidor usando las opciones de NextAuth.
-  // Esto lee la cookie segura automáticamente.
+  // Usamos getServerSession con las authOptions para obtener la sesión del lado del servidor.
   const session = (await getServerSession(authOptions)) as AppSession | null;
 
-  // 1. Verificar si hay una sesión activa
+  // 1. Verificar si hay una sesión activa y si el objeto user existe
   if (!session || !session.user) {
     return {
       session: null,
@@ -40,10 +40,19 @@ export async function verifyApiAuth(
     };
   }
 
-  // 2. Verificar si se requieren roles específicos
+  // 2. CORRECCIÓN CLAVE: Verificar explícitamente que el ID del usuario exista en la sesión.
+  // Este es el origen del error "No se pudo identificar al usuario".
+  if (!session.user.id) {
+    return {
+      session: null,
+      errorResponse: NextResponse.json({ message: 'No se pudo identificar al usuario en la sesión.' }, { status: 401 }),
+    };
+  }
+
+  // 3. Verificar si se requieren roles específicos
   if (requiredRoles.length > 0) {
     const userRoles = session.user.roles || [];
-    const userHasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
+    const userHasRequiredRole = userRoles.some(role => requiredRoles.includes(role));
 
     if (!userHasRequiredRole) {
       return {
@@ -56,6 +65,6 @@ export async function verifyApiAuth(
     }
   }
 
-  // Autenticación y autorización (si se requirió) exitosas
+  // Si todas las verificaciones pasan, la autenticación y autorización son exitosas
   return { session, errorResponse: null };
 }

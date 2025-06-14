@@ -2,18 +2,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyApiAuth } from '@/lib/apiAuthUtils';
 import { query } from '@/lib/db';
-import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-// --- Interfaces ---
-interface UserDetails extends RowDataPacket {
+// --- Interfaces (limpiadas de dependencias de mysql2) ---
+interface UserDetails {
   id: number;
   nombre: string;
   apellido: string | null;
   email: string;
 }
-interface TargetUserRoles extends RowDataPacket {
+interface TargetUserRoles {
   nombre_rol: string;
 }
 interface RouteContext {
@@ -22,7 +21,7 @@ interface RouteContext {
   };
 }
 
-// --- Zod Schema para PUT ---
+// --- Zod Schema para PUT (sin cambios) ---
 const updateUserSchema = z.object({
   nombre: z.string().min(3).regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/).optional(),
   apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/).optional(),
@@ -32,9 +31,8 @@ const updateUserSchema = z.object({
   message: "Se debe proporcionar al menos un campo para actualizar."
 });
 
-// --- NUEVA FUNCIÓN GET ---
+// --- GET: Obtener detalles del usuario ---
 export async function GET(request: NextRequest, context: RouteContext) {
-  // Proteger la ruta: accesible para administradores y moderadores
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
 
@@ -44,15 +42,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'ID de usuario a obtener es inválido.' }, { status: 400 });
   }
 
-  // Regla de Negocio: Un moderador no puede ver los detalles de otro moderador o de un admin
   const requesterIsAdmin = session?.user?.roles?.includes('administrador');
   if (!requesterIsAdmin) {
     try {
-      const targetUserRolesResult = await query<TargetUserRoles[]>(
-        `SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`,
-        [targetUserId]
-      );
-      const targetRoles = targetUserRolesResult.map(r => r.nombre_rol);
+      const targetUserRolesRs = await query({
+        sql: `SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`,
+        args: [targetUserId]
+      });
+      const targetRoles = targetUserRolesRs.rows.map(r => (r as unknown as TargetUserRoles).nombre_rol);
+      
       if (targetRoles.includes('administrador') || targetRoles.includes('moderador_contenido')) {
         return NextResponse.json({ message: 'Acceso denegado: Un moderador no puede ver los detalles de otros moderadores o administradores.' }, { status: 403 });
       }
@@ -62,16 +60,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const userResults = await query<UserDetails[]>(
-      'SELECT id, nombre, apellido, email FROM usuarios WHERE id = ?',
-      [targetUserId]
-    );
+    const userRs = await query({
+      sql: 'SELECT id, nombre, apellido, email FROM usuarios WHERE id = ?',
+      args: [targetUserId]
+    });
 
-    if (userResults.length === 0) {
+    if (userRs.rows.length === 0) {
       return NextResponse.json({ message: `Usuario con ID ${targetUserId} no encontrado.` }, { status: 404 });
     }
     
-    return NextResponse.json({ user: userResults[0] });
+    return NextResponse.json({ user: userRs.rows[0] });
   } catch (error) {
     console.error(`Error al obtener detalles del usuario ID ${targetUserId}:`, error);
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
@@ -79,7 +77,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 
-// --- FUNCIÓN PUT EXISTENTE (SIN CAMBIOS) ---
+// --- PUT: Actualizar detalles del usuario ---
 export async function PUT(request: NextRequest, context: RouteContext) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
   if (authError) { return authError; }
@@ -90,6 +88,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
   }
 
+  // Lógica de permisos sin cambios
   const requesterIsAdmin = session?.user?.roles?.includes('administrador');
   if (!requesterIsAdmin) { /* ... (misma lógica de negocio que en GET) ... */ }
 
@@ -106,13 +105,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     const updateFields: string[] = [];
-    const updateValues: (string | number | boolean | null)[] = [];
+    const updateValues: (string | number | null)[] = [];
 
     if (nombre) { updateFields.push('nombre = ?'); updateValues.push(nombre); }
     if (apellido !== undefined) { updateFields.push('apellido = ?'); updateValues.push(apellido || null); }
     if (email) {
-      const emailExists = await query<RowDataPacket[]>('SELECT id FROM usuarios WHERE email = ? AND id != ?', [email, targetUserId]);
-      if (emailExists.length > 0) {
+      const emailExistsRs = await query({
+        sql: 'SELECT id FROM usuarios WHERE email = ? AND id != ?', 
+        args: [email, targetUserId]
+      });
+      if (emailExistsRs.rows.length > 0) {
         return NextResponse.json({ message: 'El nuevo correo electrónico ya está en uso.' }, { status: 409 });
       }
       updateFields.push('email = ?');
@@ -132,18 +134,21 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const sqlSetClause = updateFields.join(', ');
     updateValues.push(targetUserId);
 
-    const result = await query<ResultSetHeader>(`UPDATE usuarios SET ${sqlSetClause} WHERE id = ?`, updateValues);
+    const updateRs = await query({
+      sql: `UPDATE usuarios SET ${sqlSetClause} WHERE id = ?`,
+      args: updateValues
+    });
 
-    if (result.affectedRows === 0) {
+    if (updateRs.rowsAffected === 0) {
       return NextResponse.json({ message: `Usuario con ID ${targetUserId} no encontrado.` }, { status: 404 });
     }
 
     return NextResponse.json({ message: `Los detalles del usuario ID ${targetUserId} han sido actualizados.` });
 
   } catch (error) {
-    const typedError = error as { message?: string; code?: string };
-    console.error(`Error al actualizar detalles del usuario ID ${targetUserId}:`, typedError);
-    if (typedError.code === 'ER_DUP_ENTRY') {
+    const typedError = error as { code?: string };
+    console.error(`Error al actualizar detalles del usuario ID ${targetUserId}:`, error);
+    if (typedError.code === 'SQLITE_CONSTRAINT') {
       return NextResponse.json({ message: 'El correo electrónico ya está en uso.' }, { status: 409 });
     }
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });

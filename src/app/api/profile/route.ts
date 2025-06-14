@@ -2,11 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyApiAuth } from '@/lib/apiAuthUtils';
 import { query } from '@/lib/db';
-import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-// Esquema de validación con Zod para los datos de actualización del perfil
+// Esquema de validación con Zod (sin cambios)
 const updateProfileSchema = z.object({
   nombre: z.string()
     .min(3, { message: "El nombre debe tener al menos 3 caracteres." })
@@ -19,9 +18,8 @@ const updateProfileSchema = z.object({
     .or(z.literal('')),
   confirmarNuevaContraseña: z.string().optional(),
 })
-.partial() // Hace que todos los campos sean opcionales
+.partial()
 .refine(data => {
-    // Si se proporciona una nueva contraseña, también se debe proporcionar la actual.
     if (data.nuevaContraseña && !data.contraseñaActual) {
         return false;
     }
@@ -31,7 +29,6 @@ const updateProfileSchema = z.object({
     path: ["contraseñaActual"],
 })
 .refine(data => {
-    // Si se proporciona una nueva contraseña, la confirmación debe coincidir.
     if (data.nuevaContraseña && data.nuevaContraseña !== data.confirmarNuevaContraseña) {
         return false;
     }
@@ -41,7 +38,6 @@ const updateProfileSchema = z.object({
     path: ["confirmarNuevaContraseña"],
 })
 .refine(data => {
-    // Asegurarse de que al menos un campo se esté actualizando.
     return !!data.nombre || !!data.nuevaContraseña;
 }, {
     message: "Se debe proporcionar un nombre o una nueva contraseña para actualizar.",
@@ -49,7 +45,6 @@ const updateProfileSchema = z.object({
 
 
 export async function PUT(request: NextRequest) {
-  // 1. Proteger la ruta: solo para usuarios autenticados (no se requieren roles específicos)
   const { session, errorResponse: authError } = await verifyApiAuth();
   if (authError) { return authError; }
 
@@ -58,7 +53,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }
 
-  // 2. Validar el cuerpo de la solicitud con Zod
   let body;
   try { body = await request.json(); } 
   catch (error) { return NextResponse.json({ message: 'Cuerpo de la solicitud JSON inválido.' }, { status: 400 }); }
@@ -76,20 +70,20 @@ export async function PUT(request: NextRequest) {
 
     // Lógica para cambio de contraseña
     if (nuevaContraseña && contraseñaActual) {
-      // Obtener el hash de la contraseña actual del usuario desde la BD
-      const userResult = await query<RowDataPacket[]>('SELECT password_hash FROM usuarios WHERE id = ?', [userId]);
-      if (userResult.length === 0) {
+      const userRs = await query({
+        sql: 'SELECT password_hash FROM usuarios WHERE id = ?',
+        args: [userId]
+      });
+      if (userRs.rows.length === 0) {
         return NextResponse.json({ message: 'Usuario no encontrado.' }, { status: 404 });
       }
-      const currentPasswordHash = userResult[0].password_hash;
+      const currentPasswordHash = (userRs.rows[0] as any).password_hash;
       
-      // Verificar si la contraseña actual proporcionada es correcta
       const isPasswordMatch = await bcrypt.compare(contraseñaActual, currentPasswordHash);
       if (!isPasswordMatch) {
-        return NextResponse.json({ message: 'La contraseña actual es incorrecta.' }, { status: 403 }); // 403 Forbidden
+        return NextResponse.json({ message: 'La contraseña actual es incorrecta.' }, { status: 403 });
       }
 
-      // Si es correcta, hashear la nueva contraseña y añadirla a la actualización
       const salt = await bcrypt.genSalt(10);
       const newPasswordHash = await bcrypt.hash(nuevaContraseña, salt);
       updateFields.push('password_hash = ?');
@@ -102,19 +96,17 @@ export async function PUT(request: NextRequest) {
       updateValues.push(nombre);
     }
     
-    // Si no hay campos para actualizar (aunque Zod ya lo valida, es una doble verificación)
     if (updateFields.length === 0) {
       return NextResponse.json({ message: 'No se proporcionaron campos válidos para actualizar.' }, { status: 400 });
     }
 
-    // Construir y ejecutar la consulta UPDATE
     const sqlSetClause = updateFields.join(', ');
     updateValues.push(userId);
 
-    await query<ResultSetHeader>(
-      `UPDATE usuarios SET ${sqlSetClause} WHERE id = ?`,
-      updateValues
-    );
+    await query({
+      sql: `UPDATE usuarios SET ${sqlSetClause} WHERE id = ?`,
+      args: updateValues
+    });
 
     return NextResponse.json({ message: "Tu perfil ha sido actualizado exitosamente." });
 

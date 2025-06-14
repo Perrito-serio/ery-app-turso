@@ -2,11 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyApiAuth } from '@/lib/apiAuthUtils';
 import { query } from '@/lib/db';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-// --- Interfaces (sin cambios) ---
+// --- Interfaces (limpiadas de dependencias de mysql2) ---
 interface UserDetailsData {
   id: number;
   nombre: string;
@@ -16,7 +15,7 @@ interface UserDetailsData {
   fecha_creacion: Date;
   roles: string[];
 }
-interface UserFromDB extends RowDataPacket {
+interface UserFromDB {
     id: number;
     nombre: string;
     apellido: string | null;
@@ -24,7 +23,7 @@ interface UserFromDB extends RowDataPacket {
     activo: number | boolean;
     fecha_creacion: string | Date;
 }
-interface UserRoleFromDB extends RowDataPacket {
+interface UserRoleFromDB {
   nombre_rol: string;
 }
 interface RouteContext {
@@ -32,9 +31,8 @@ interface RouteContext {
     userId: string;
   };
 }
-// ---
 
-// Esquema de validación con Zod para el método PUT
+// --- Zod Schema para PUT (sin cambios) ---
 const adminUpdateUserSchema = z.object({
   nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres.").regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/, "El nombre solo puede contener letras y espacios.").optional(),
   apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/, "El apellido solo puede contener letras y espacios.").optional(),
@@ -45,23 +43,33 @@ const adminUpdateUserSchema = z.object({
 });
 
 
-// --- FUNCIÓN GET (sin cambios) ---
+// --- GET: Obtener detalles y roles de un usuario ---
 export async function GET(request: NextRequest, context: RouteContext) {
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador']);
   if (authError) { return authError; }
+
   const { userId } = context.params;
   const numericUserId = parseInt(userId, 10);
   if (isNaN(numericUserId)) {
     return NextResponse.json({ message: 'ID de usuario inválido en la ruta.' }, { status: 400 });
   }
+
   try {
-    const userResults = await query<UserFromDB[]>('SELECT id, nombre, apellido, email, activo, fecha_creacion FROM usuarios WHERE id = ?', [numericUserId]);
-    if (userResults.length === 0) {
+    const userRs = await query({
+        sql: 'SELECT id, nombre, apellido, email, activo, fecha_creacion FROM usuarios WHERE id = ?',
+        args: [numericUserId]
+    });
+    if (userRs.rows.length === 0) {
       return NextResponse.json({ message: `Usuario con ID ${numericUserId} no encontrado.` }, { status: 404 });
     }
-    const rawUserData = userResults[0];
-    const rolesResults = await query<UserRoleFromDB[]>(`SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`, [numericUserId]);
-    const roles = rolesResults.map(role => role.nombre_rol);
+    const rawUserData = userRs.rows[0] as unknown as UserFromDB;
+
+    const rolesRs = await query({
+        sql: `SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`,
+        args: [numericUserId]
+    });
+    const roles = rolesRs.rows.map(role => (role as unknown as UserRoleFromDB).nombre_rol);
+
     const userDetails: UserDetailsData = {
       id: rawUserData.id,
       nombre: rawUserData.nombre,
@@ -79,9 +87,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 
-// --- NUEVA FUNCIÓN PUT para Administradores ---
+// --- PUT: Actualizar detalles de un usuario por un administrador ---
 export async function PUT(request: NextRequest, context: RouteContext) {
-  // 1. Proteger la ruta: accesible ÚNICAMENTE para administradores
   const { session, errorResponse: authError } = await verifyApiAuth(['administrador']);
   if (authError) {
     return authError;
@@ -93,7 +100,6 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
   }
 
-  // 2. Validar el cuerpo de la solicitud con Zod
   let body;
   try { body = await request.json(); } 
   catch (error) { return NextResponse.json({ message: 'Cuerpo de la solicitud JSON inválido.' }, { status: 400 }); }
@@ -106,15 +112,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   const { nombre, apellido, email, password } = validation.data;
 
   try {
-    // 3. Construir la consulta UPDATE dinámicamente
     const updateFields: string[] = [];
     const updateValues: (string | number | null)[] = [];
 
     if (nombre) { updateFields.push('nombre = ?'); updateValues.push(nombre); }
     if (apellido !== undefined) { updateFields.push('apellido = ?'); updateValues.push(apellido || null); }
     if (email) {
-      const emailExists = await query<RowDataPacket[]>('SELECT id FROM usuarios WHERE email = ? AND id != ?', [email, targetUserId]);
-      if (emailExists.length > 0) {
+      const emailExistsRs = await query({
+          sql: 'SELECT id FROM usuarios WHERE email = ? AND id != ?',
+          args: [email, targetUserId]
+      });
+      if (emailExistsRs.rows.length > 0) {
         return NextResponse.json({ message: 'El nuevo correo electrónico ya está en uso por otro usuario.' }, { status: 409 });
       }
       updateFields.push('email = ?');
@@ -134,21 +142,21 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const sqlSetClause = updateFields.join(', ');
     updateValues.push(targetUserId);
 
-    const result = await query<ResultSetHeader>(
-      `UPDATE usuarios SET ${sqlSetClause} WHERE id = ?`,
-      updateValues
-    );
+    const resultRs = await query({
+      sql: `UPDATE usuarios SET ${sqlSetClause} WHERE id = ?`,
+      args: updateValues
+    });
 
-    if (result.affectedRows === 0) {
+    if (resultRs.rowsAffected === 0) {
       return NextResponse.json({ message: `Usuario con ID ${targetUserId} no encontrado.` }, { status: 404 });
     }
 
     return NextResponse.json({ message: `Los detalles del usuario ID ${targetUserId} han sido actualizados por el administrador.` });
 
   } catch (error) {
-    const typedError = error as { message?: string; code?: string };
-    console.error(`Error al actualizar detalles del usuario ID ${targetUserId}:`, typedError);
-    if (typedError.code === 'ER_DUP_ENTRY') {
+    const typedError = error as { code?: string };
+    console.error(`Error al actualizar detalles del usuario ID ${targetUserId}:`, error);
+    if (typedError.code === 'SQLITE_CONSTRAINT') {
       return NextResponse.json({ message: 'El correo electrónico ya está en uso.' }, { status: 409 });
     }
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });

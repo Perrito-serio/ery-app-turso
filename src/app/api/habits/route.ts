@@ -2,10 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyApiAuth } from '@/lib/apiAuthUtils';
 import { query } from '@/lib/db';
-import { RowDataPacket, OkPacket } from 'mysql2';
 import { z } from 'zod';
+import { Row } from '@libsql/client';
 
-// Esquema de Zod para la validación al crear un nuevo hábito
+// Esquema de Zod (sin cambios)
 const createHabitSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido.").max(255),
   descripcion: z.string().optional().nullable(),
@@ -14,7 +14,6 @@ const createHabitSchema = z.object({
   }),
   meta_objetivo: z.number().optional().nullable(),
 }).refine(data => {
-    // Si el tipo es medible, la meta es requerida.
     if (data.tipo === 'MEDIBLE_NUMERICO') {
         return data.meta_objetivo != null && data.meta_objetivo > 0;
     }
@@ -24,16 +23,15 @@ const createHabitSchema = z.object({
     path: ["meta_objetivo"],
 });
 
-
-// Interfaz para un hábito devuelto por la API
-interface Habit extends RowDataPacket {
+// --- Interfaces (limpiadas de dependencias de mysql2) ---
+interface Habit extends Row {
   id: number;
   usuario_id: number;
   nombre: string;
   descripcion: string | null;
   tipo: 'SI_NO' | 'MEDIBLE_NUMERICO' | 'MAL_HABITO';
   meta_objetivo: number | null;
-  fecha_creacion: Date;
+  fecha_creacion: string; // SQLite devuelve fechas como strings
 }
 
 // --- GET /api/habits ---
@@ -44,8 +42,6 @@ export async function GET(request: NextRequest) {
   }
 
   const userId = session?.user?.id;
-
-  // CORRECCIÓN: Verificar si tenemos un userId válido antes de continuar
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }
@@ -53,13 +49,12 @@ export async function GET(request: NextRequest) {
   console.log(`Usuario ID: ${userId} está solicitando su lista de hábitos.`);
 
   try {
-    // Ahora, 'userId' aquí está garantizado que es un número.
-    const habits = await query<Habit[]>(
-      `SELECT * FROM habitos WHERE usuario_id = ? ORDER BY fecha_creacion DESC`,
-      [userId]
-    );
+    const habitsRs = await query({
+      sql: `SELECT * FROM habitos WHERE usuario_id = ? ORDER BY fecha_creacion DESC`,
+      args: [userId]
+    });
 
-    return NextResponse.json({ habits });
+    return NextResponse.json({ habits: habitsRs.rows });
 
   } catch (error) {
     console.error("Error al obtener la lista de hábitos:", error);
@@ -76,7 +71,6 @@ export async function POST(request: NextRequest) {
   }
   const userId = session?.user?.id;
 
-  // CORRECCIÓN: Verificar si tenemos un userId válido antes de continuar
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }
@@ -94,24 +88,25 @@ export async function POST(request: NextRequest) {
   console.log(`Usuario ID: ${userId} está creando un nuevo hábito: "${nombre}"`);
 
   try {
-    const sqlInsert = `
-      INSERT INTO habitos (usuario_id, nombre, descripcion, tipo, meta_objetivo)
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    // Ahora, 'userId' aquí está garantizado que es un número.
-    const paramsInsert = [userId, nombre, descripcion || null, tipo, meta_objetivo || null];
-    const result = await query<OkPacket>(sqlInsert, paramsInsert);
+    const result = await query({
+        sql: `
+            INSERT INTO habitos (usuario_id, nombre, descripcion, tipo, meta_objetivo)
+            VALUES (?, ?, ?, ?, ?)
+        `,
+        args: [userId, nombre, descripcion || null, tipo, meta_objetivo || null]
+    });
 
-    if (result.affectedRows === 1) {
-      const newHabitId = result.insertId;
-      const newHabit = {
-        id: newHabitId,
-        usuario_id: userId,
-        nombre,
-        descripcion: descripcion || null,
-        tipo,
-        meta_objetivo: meta_objetivo || null,
-      };
+    if (result.rowsAffected === 1 && result.lastInsertRowid) {
+      const newHabitId = Number(result.lastInsertRowid);
+      
+      // Obtenemos el hábito recién creado para devolverlo completo
+      const newHabitRs = await query({
+        sql: "SELECT * FROM habitos WHERE id = ?",
+        args: [newHabitId]
+      });
+
+      const newHabit = newHabitRs.rows[0];
+      
       return NextResponse.json({ message: "Hábito creado exitosamente.", habit: newHabit }, { status: 201 });
     }
 
