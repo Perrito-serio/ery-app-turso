@@ -2,7 +2,7 @@
   "cookies": [
     {
       "name": "__Host-next-auth.csrf-token",
-      "value": "910c865d36bc7de2bfc2742e10c8052e9084739a4acde957223cfd4b957036aa%7C3642564bf5aa68255ee684d1d9220f55c09ca0d1d3329ed4221a5a241f2e921d",
+      "value": "6457c869fa01515019ddf8d5509bcc1f6286382edce1f68de2878c5abcc82454%7Cb711626d2557f885d431132a54c60531178dacdbf9a184ff6c1d6e0c149a7e3d",
       "domain": "ery-app-turso.vercel.app",
       "path": "/",
       "expires": -1,
@@ -22,10 +22,10 @@
     },
     {
       "name": "__Secure-next-auth.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..yj6I51dEwfSKP2CW.JrzKi4M7MmTVk2UbkM925yRr1mPuldPYz_bmb-KF6AFdQ8jqkuDEX4-ovGPAXvvrxz6VGKQ3oPzeY1s6S5uSC5VKz_4_N9hziFQP1TeG2B9dMj8H9X1jGi2mWk2DVVtnc4BRyCPTtuX1klCqGVox_DTddhd8C0Mr5BgMdpunfFwIardzxPgUVVml_MsgYoaIeIj767wHC4AOi8d5zp891SB_fc95WlP9xwZlbESYazYg3xfn.QwZELkjDxiPTq7wubF9k6g",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..rESJ549nJlilDJF4.o5rugdzmEZOcUi68y7LZE16KdFyvsA555AZfZWUBKBHeQljD3Rnukwf-1aeZmpYXQuYWo-xv3wC7HBmQJf5xG_PrMjfkATVFPhqTEFZzFC5fLPGOrEzNbG12QgGxqhrC_Wh3prphrZRjUGoDNVtEiWR6XpQkC_8PaP6jbGjgNrUshpyrGQUxIi29T4m7pQPH8jwTM00vRAYVqiDLYn6GhRHTjYIPZrPogw.L65IifFH_SFcYbgLabcYfg",
       "domain": "ery-app-turso.vercel.app",
       "path": "/",
-      "expires": 1752875278.979981,
+      "expires": 1752875279.334987,
       "httpOnly": true,
       "secure": true,
       "sameSite": "Lax"

@@ -15,10 +15,10 @@ export default defineConfig({
   },
 
   projects: [
-    // 1. Definir un proyecto de "setup" que se ejecutará primero.
+    // Setup projects
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    { name: 'setup-users', testMatch: /auth-users\.setup\.ts/ },
 
-    // 2. Definir los proyectos de navegador que dependen del setup.
     {
       name: 'chromium',
       use: {
@@ -26,7 +26,7 @@ export default defineConfig({
         // Usar el estado de autenticación guardado por el setup.
         storageState: 'playwright/.auth/admin.json',
       },
-      dependencies: ['setup'], // ¡Esta línea es clave!
+      dependencies: ['setup', 'setup-users'],
     },
 
     {
@@ -35,7 +35,7 @@ export default defineConfig({
         ...devices['Desktop Firefox'],
         storageState: 'playwright/.auth/admin.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup', 'setup-users'],
     },
 
     {
@@ -44,7 +44,7 @@ export default defineConfig({
         ...devices['Desktop Safari'],
         storageState: 'playwright/.auth/admin.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup', 'setup-users'],
     },
   ],
 });
