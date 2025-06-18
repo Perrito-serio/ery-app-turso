@@ -13,6 +13,7 @@
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
     "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.14.1",
     "next": "15.3.2",
     "next-auth": "^4.24.11",
     "react": "^19.0.0",
