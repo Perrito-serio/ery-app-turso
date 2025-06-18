@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { faker } = require('@faker-js/faker');
 const { createClient } = require('@libsql/client');
 
-const NUM_USERS_TO_CREATE = 1000; // Puedes ajustar este valor
+const NUM_USERS_TO_CREATE = 100; // Puedes ajustar este valor
 const DEFAULT_PASSWORD = 'password123';
 
 const db = createClient({

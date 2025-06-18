@@ -27,11 +27,11 @@ export default function AdminUsersPage() {
   const [actionLoading, setActionLoading] = useState<Record<number, boolean>>({});
   const [sortColumn, setSortColumn] = useState<keyof UserFromApi | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // PAGINACIÓN
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10; // Puedes ajustar este valor
-  const totalPages = Math.ceil(users.length / usersPerPage);
 
   const fetchUsers = useCallback(async () => {
     setPageLoading(true);
@@ -107,10 +107,24 @@ export default function AdminUsersPage() {
     }
   };
 
-  const sortedUsers = useMemo(() => {
-    if (!sortColumn) return users;
+  // Filtrar usuarios basado en el término de búsqueda
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm.trim()) return users;
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    return users.filter(user => 
+      user.nombre.toLowerCase().includes(searchLower) ||
+      (user.apellido && user.apellido.toLowerCase().includes(searchLower)) ||
+      user.email.toLowerCase().includes(searchLower) ||
+      user.id.toString().includes(searchLower)
+    );
+  }, [users, searchTerm]);
 
-    return [...users].sort((a, b) => {
+  const sortedUsers = useMemo(() => {
+    const usersToSort = filteredUsers;
+    if (!sortColumn) return usersToSort;
+
+    return [...usersToSort].sort((a, b) => {
       const aValue = a[sortColumn];
       const bValue = b[sortColumn];
 
@@ -129,7 +143,9 @@ export default function AdminUsersPage() {
       }
       return 0;
     });
-  }, [users, sortColumn, sortDirection]);
+  }, [filteredUsers, sortColumn, sortDirection]);
+
+  const totalPages = Math.ceil(sortedUsers.length / usersPerPage);
 
   // PAGINACIÓN
   const paginatedUsers = useMemo(() => {
@@ -137,6 +153,13 @@ export default function AdminUsersPage() {
     const end = start + usersPerPage;
     return sortedUsers.slice(start, end);
   }, [sortedUsers, currentPage, usersPerPage]);
+
+  // Resetear página cuando cambie el filtro
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, totalPages]);
 
   if (status === 'loading' || pageLoading) {
     return (
@@ -166,6 +189,48 @@ export default function AdminUsersPage() {
         {fetchError && (
           <div className="bg-red-700 text-white p-3 rounded mb-4">{fetchError}</div>
         )}
+        
+        {/* Buscador */}
+        <div className="mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar usuarios por nombre, apellido, email o ID..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1); // Resetear a la primera página al buscar
+              }}
+              className="w-full px-4 py-3 pl-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {searchTerm && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setCurrentPage(1);
+                }}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <div className="mt-2 text-sm text-gray-400">
+              Mostrando {sortedUsers.length} de {users.length} usuarios
+              {sortedUsers.length === 0 && (
+                <span className="text-yellow-400 ml-2">- No se encontraron resultados</span>
+              )}
+            </div>
+          )}
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full bg-gray-700 rounded">
             <thead className="bg-gray-600">
@@ -184,36 +249,60 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-gray-600">
               {paginatedUsers.length > 0 ? (
-                paginatedUsers.map(userItem => (
-                  <tr key={userItem.id} className="hover:bg-gray-600">
-                    <td className="px-3 py-4 text-sm text-gray-200">{userItem.id}</td>
-                    <td className="px-3 py-4 text-sm text-gray-200">{userItem.nombre}</td>
-                    <td className="px-3 py-4 text-sm text-gray-200">{userItem.apellido || '-'}</td>
-                    <td className="px-3 py-4 text-sm text-gray-200">{userItem.email}</td>
-                    <td className="px-3 py-4 text-sm">
-                      <span className={`px-2 inline-flex text-xs font-semibold rounded-full ${userItem.activo ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'}`}>
-                        {userItem.activo ? 'Sí' : 'No'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-400">{new Date(userItem.fecha_creacion).toLocaleDateString()}</td>
-                    <td className="px-3 py-4 text-sm">
-                      <button
-                        onClick={() => handleToggleActive(userItem.id, Boolean(userItem.activo))}
-                        disabled={actionLoading[userItem.id] || session?.user?.id === userItem.id}
-                        className={`px-3 py-1 text-xs rounded ${userItem.activo ? 'bg-yellow-600' : 'bg-green-600'} text-white hover:opacity-80 disabled:opacity-50 mr-2`}
-                      >
-                        {actionLoading[userItem.id] ? '...' : userItem.activo ? 'Desactivar' : 'Activar'}
-                      </button>
-                      <Link href={`/admin/users/${userItem.id}/edit`} className="text-indigo-400 hover:underline">
-                        Editar
-                      </Link>
-                    </td>
-                  </tr>
-                ))
+                paginatedUsers.map(userItem => {
+                  // Función para resaltar el texto de búsqueda
+                  const highlightText = (text: string, search: string) => {
+                    if (!search.trim()) return text;
+                    const regex = new RegExp(`(${search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                    const parts = text.split(regex);
+                    return parts.map((part, index) => 
+                      regex.test(part) ? (
+                        <span key={index} className="bg-yellow-600 text-yellow-100 px-1 rounded">
+                          {part}
+                        </span>
+                      ) : part
+                    );
+                  };
+
+                  return (
+                    <tr key={userItem.id} className="hover:bg-gray-600">
+                      <td className="px-3 py-4 text-sm text-gray-200">
+                        {highlightText(userItem.id.toString(), searchTerm)}
+                      </td>
+                      <td className="px-3 py-4 text-sm text-gray-200">
+                        {highlightText(userItem.nombre, searchTerm)}
+                      </td>
+                      <td className="px-3 py-4 text-sm text-gray-200">
+                        {userItem.apellido ? highlightText(userItem.apellido, searchTerm) : '-'}
+                      </td>
+                      <td className="px-3 py-4 text-sm text-gray-200">
+                        {highlightText(userItem.email, searchTerm)}
+                      </td>
+                      <td className="px-3 py-4 text-sm">
+                        <span className={`px-2 inline-flex text-xs font-semibold rounded-full ${userItem.activo ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'}`}>
+                          {userItem.activo ? 'Sí' : 'No'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-4 text-sm text-gray-400">{new Date(userItem.fecha_creacion).toLocaleDateString()}</td>
+                      <td className="px-3 py-4 text-sm">
+                        <button
+                          onClick={() => handleToggleActive(userItem.id, Boolean(userItem.activo))}
+                          disabled={actionLoading[userItem.id] || session?.user?.id === userItem.id}
+                          className={`px-3 py-1 text-xs rounded ${userItem.activo ? 'bg-yellow-600' : 'bg-green-600'} text-white hover:opacity-80 disabled:opacity-50 mr-2`}
+                        >
+                          {actionLoading[userItem.id] ? '...' : userItem.activo ? 'Desactivar' : 'Activar'}
+                        </button>
+                        <Link href={`/admin/users/${userItem.id}/edit`} className="text-indigo-400 hover:underline">
+                          Editar
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={7} className="text-center py-4 text-gray-400">
-                    No se encontraron usuarios.
+                    {searchTerm ? 'No se encontraron usuarios que coincidan con la búsqueda.' : 'No se encontraron usuarios.'}
                   </td>
                 </tr>
               )}
@@ -221,23 +310,27 @@ export default function AdminUsersPage() {
           </table>
         </div>
         {/* Controles de paginación */}
-        <div className="flex justify-center items-center mt-4 gap-2">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <span className="text-gray-200">Página {currentPage} de {totalPages}</span>
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50"
-          >
-            Siguiente
-          </button>
-        </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center mt-4 gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50 hover:bg-gray-500"
+            >
+              Anterior
+            </button>
+            <span className="text-gray-200">
+              Página {currentPage} de {totalPages} ({sortedUsers.length} usuarios)
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50 hover:bg-gray-500"
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
       </div>
     </MainLayout>
   );
