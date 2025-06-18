@@ -1,0 +1,37 @@
+# Dependencias para Pruebas de Carga - Ery App
+# Instalar con: pip install -r requirements-load-testing.txt
+
+# Herramienta principal de pruebas de carga
+locust>=2.17.0
+
+# Dependencias para requests HTTP
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Análisis y procesamiento de datos
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualización de resultados (opcional)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Utilidades para CSV y datos
+csv-reader>=1.2.0
+
+# Logging y debugging
+coloredlogs>=15.0
+
+# Validación de datos
+jsonschema>=4.17.0
+
+# Herramientas de línea de comandos
+click>=8.1.0
+rich>=13.0.0
+
+# Monitoreo de recursos del sistema (opcional)
+psutil>=5.9.0
+
+# Generación de reportes
+jinja2>=3.1.0
+markupsafe>=2.1.0
