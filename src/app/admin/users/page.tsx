@@ -28,6 +28,11 @@ export default function AdminUsersPage() {
   const [sortColumn, setSortColumn] = useState<keyof UserFromApi | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  // PAGINACIÓN
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10; // Puedes ajustar este valor
+  const totalPages = Math.ceil(users.length / usersPerPage);
+
   const fetchUsers = useCallback(async () => {
     setPageLoading(true);
     setFetchError(null);
@@ -126,6 +131,13 @@ export default function AdminUsersPage() {
     });
   }, [users, sortColumn, sortDirection]);
 
+  // PAGINACIÓN
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * usersPerPage;
+    const end = start + usersPerPage;
+    return sortedUsers.slice(start, end);
+  }, [sortedUsers, currentPage, usersPerPage]);
+
   if (status === 'loading' || pageLoading) {
     return (
       <MainLayout pageTitle="Gestión de Usuarios">
@@ -171,8 +183,8 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-600">
-              {sortedUsers.length > 0 ? (
-                sortedUsers.map(userItem => (
+              {paginatedUsers.length > 0 ? (
+                paginatedUsers.map(userItem => (
                   <tr key={userItem.id} className="hover:bg-gray-600">
                     <td className="px-3 py-4 text-sm text-gray-200">{userItem.id}</td>
                     <td className="px-3 py-4 text-sm text-gray-200">{userItem.nombre}</td>
@@ -207,6 +219,24 @@ export default function AdminUsersPage() {
               )}
             </tbody>
           </table>
+        </div>
+        {/* Controles de paginación */}
+        <div className="flex justify-center items-center mt-4 gap-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span className="text-gray-200">Página {currentPage} de {totalPages}</span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50"
+          >
+            Siguiente
+          </button>
         </div>
       </div>
     </MainLayout>

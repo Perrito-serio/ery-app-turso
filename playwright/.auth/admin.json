@@ -1,43 +1,43 @@
 {
   "cookies": [
     {
-      "name": "next-auth.csrf-token",
-      "value": "e5b6d2fc47d3ee723cd0c51c94a46ebab649c902689a3b30581ac39eedbe7bdf%7C8248d509d24a8363302b46fb7daf72bc4869157d8322b990a8f445b5682a7078",
-      "domain": "localhost",
+      "name": "__Host-next-auth.csrf-token",
+      "value": "4c59dd877d7f7b4397e48321b7ee95b183c7407ed1e92576957bae41c780b8e2%7C12405c26538e8a796c124de0c268d3c272ccb0f788703e23d29d336fb476fab3",
+      "domain": "ery-app-turso.vercel.app",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
+      "secure": true,
+      "sameSite": "None"
     },
     {
-      "name": "next-auth.callback-url",
-      "value": "http%3A%2F%2Flocalhost%3A3000%2Flogin",
-      "domain": "localhost",
+      "name": "__Secure-next-auth.callback-url",
+      "value": "https%3A%2F%2Fery-app-turso.vercel.app%2Flogin",
+      "domain": "ery-app-turso.vercel.app",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
+      "secure": true,
+      "sameSite": "None"
     },
     {
-      "name": "next-auth.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..Pt4SO6HumCIdKeg7.jhZ3_QxYp-btfRAAL2H2TzaGR2Sz5gMoaUDWhBLJPW_2PosP5qUvTByiYxC0u6WARQIkPull5glALbrnEyog7DRchKiGmT1TWiD428XiO373DZJkNP7m84R8Jxml-9q0q4E9MBn_xMcijvsx2G4mFpc9heN-NpqOQygPj1Q1r6g_RZ6IRnUi3dNi1h2dglxz8etWhYBC7VmpqPvmhrCzohCh0WS1zwh22-O2mg.t69qIeusCS1Kg97TpGXngA",
-      "domain": "localhost",
+      "name": "__Secure-next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..YUN6c5DHcN0ZJ3re.Tr-uu5XSFNkURY34t6eIZSuk0DVJQHRIVB2uZSQqxSiICZMjw1h-rz7jt9uLK1Tgslhk1LfnZhQWT3-N9gJUV_MUgpw_-pIIFOaLGmLsgLYPmeDbP3PRF9YYOPKQv9Kiau1Q4KMIJeiyvrgZmc7QCOdJNj6pC3ZziHH4WFUdWNiZQFHt5axuI2TMN86txv50PlMXTG8BMD07y-mAe5TCytReikZpX_SglkfYnMl41qo.Kwr1r2tZfyATy_2vBVXFmA",
+      "domain": "ery-app-turso.vercel.app",
       "path": "/",
-      "expires": 1752260813.561535,
+      "expires": 1752870569,
       "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
+      "secure": true,
+      "sameSite": "None"
     }
   ],
   "origins": [
     {
-      "origin": "http://localhost:3000",
+      "origin": "https://ery-app-turso.vercel.app",
       "localStorage": [
         {
           "name": "nextauth.message",
-          "value": "{\"event\":\"session\",\"data\":{\"trigger\":\"getSession\"},\"timestamp\":1749668813}"
+          "value": "{\"event\":\"session\",\"data\":{\"trigger\":\"getSession\"},\"timestamp\":1750278572}"
         }
       ]
     }

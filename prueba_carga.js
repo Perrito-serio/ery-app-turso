@@ -31,7 +31,7 @@ export const options = {
 export default function () {
   const user = users[__VU % users.length];
 
-  const baseUrl = 'http://localhost:3000';
+  const baseUrl = 'https://ery-app-turso.vercel.app';
 
   const csrfRes = http.get(`${baseUrl}/api/auth/csrf`);
   let csrfToken;

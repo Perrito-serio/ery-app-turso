@@ -1,0 +1,14 @@
+{
+  "cookies": [
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..KceN8uhOz2e4ib-y._5s-TXLx2VAfNTdw8lOeCTASV1P4WRdY7J2QJP6_ql8uZNPABezF4qZ5TPQnz2pN8gt6q7WRBIDxNXGUCAWk9q0LS51287a80MEPPcaUb4ltBkqHek2leJ2BZxoqJiw2lveuo3CRLDk_RL3VRXTvwoUF9G3r7nO5iBnmpMAd-Dxnw6IlJk_TjSCiiy40o4v0NgxwOe_orEpIXj-szzdabjt0QCtawn9rFA.NWMkGSb_8-84Pz2a_jb7pA",
+      "domain": "ery-app-turso.vercel.app",
+      "path": "/",
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}
