@@ -1,0 +1,65 @@
+# Page snapshot
+
+```yaml
+- complementary:
+  - link "Ery":
+    - /url: /
+  - navigation:
+    - link "Inicio":
+      - /url: /
+      - img
+      - text: Inicio
+    - link "Mi Dashboard":
+      - /url: /my-dashboard
+      - img
+      - text: Mi Dashboard
+    - link "Mi Perfil":
+      - /url: /profile
+      - img
+      - text: Mi Perfil
+    - link "Mis Hábitos":
+      - /url: /habits
+      - img
+      - text: Mis Hábitos
+  - img "Avatar"
+  - paragraph: Test
+  - paragraph: usuario_estandar
+  - button "Cerrar Sesión":
+    - img
+    - text: Cerrar Sesión
+- banner:
+  - heading "Mis Hábitos y Adicciones" [level=1]
+- main:
+  - heading "Mi Panel de Hábitos" [level=2]
+  - button "+ Crear Hábito"
+  - heading "Hábito Sí/No" [level=3]
+  - paragraph: Sin descripción
+  - paragraph: "Tipo: SI_NO"
+  - paragraph: "Registrar progreso para hoy (6/17/2025):"
+  - button "Marcar como Hecho"
+  - heading "Hábito para Log Test" [level=3]
+  - paragraph: Sin descripción
+  - paragraph: "Tipo: SI_NO"
+  - paragraph: "Registrar progreso para hoy (6/17/2025):"
+  - button "Marcar como Hecho"
+  - heading "Test Hábito API" [level=3]
+  - paragraph: Hábito creado desde test de API
+  - paragraph: "Tipo: SI_NO"
+  - paragraph: "Registrar progreso para hoy (6/17/2025):"
+  - button "Marcar como Hecho"
+  - heading "Crear Nuevo Hábito" [level=2]
+  - text: Nombre del Hábito
+  - textbox "Nombre del Hábito": Beber agua
+  - text: Descripción (opcional)
+  - textbox "Descripción (opcional)": Beber 8 vasos de agua al día
+  - text: Tipo de Hábito
+  - combobox "Tipo de Hábito":
+    - option "Sí / No (ej. Meditar)"
+    - option "Medible (ej. Leer páginas)" [selected]
+    - option "Dejar un Mal Hábito (ej. Dejar de fumar)"
+  - text: Meta Numérica (ej. 30 para 30 páginas)
+  - spinbutton "Meta Numérica (ej. 30 para 30 páginas)"
+  - button "Cancelar"
+  - button "Crear Hábito"
+- alert
+```

@@ -1,0 +1,64 @@
+# Page snapshot
+
+```yaml
+- complementary:
+  - link "Ery":
+    - /url: /
+  - navigation:
+    - link "Inicio":
+      - /url: /
+      - img
+      - text: Inicio
+    - link "Mi Dashboard":
+      - /url: /my-dashboard
+      - img
+      - text: Mi Dashboard
+    - link "Mi Perfil":
+      - /url: /profile
+      - img
+      - text: Mi Perfil
+    - link "Mis Hábitos":
+      - /url: /habits
+      - img
+      - text: Mis Hábitos
+    - link "Dashboard Admin":
+      - /url: /dashboard
+      - img
+      - text: Dashboard Admin
+    - link "Gestión Usuarios":
+      - /url: /admin/users
+      - img
+      - text: Gestión Usuarios
+  - img "Avatar"
+  - paragraph: Wisommm
+  - paragraph: administrador
+  - button "Cerrar Sesión":
+    - img
+    - text: Cerrar Sesión
+- banner:
+  - heading "Mi Dashboard" [level=1]
+- main:
+  - img
+  - paragraph: Hábitos Activos
+  - paragraph: "0"
+  - img
+  - paragraph: Mejor Racha Actual
+  - paragraph: 0 días
+  - img
+  - paragraph: Logros
+  - paragraph: "0"
+  - heading "Progreso de Hábitos" [level=3]
+  - heading "¡Es hora de empezar!" [level=3]
+  - paragraph: Aún no tienes hábitos para seguir.
+  - link "Crea tu primer hábito":
+    - /url: /habits
+  - heading "Actividad Reciente" [level=3]
+  - paragraph: Aún no hay actividad reciente.
+  - button "Mes anterior":
+    - img
+  - heading "junio de 2025" [level=2]
+  - button "Mes siguiente":
+    - img
+  - text: Lun Mar Mié Jue Vie Sáb Dom 26 27 28 29 30 31 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 1 2 3 4 5 6
+- alert
+```

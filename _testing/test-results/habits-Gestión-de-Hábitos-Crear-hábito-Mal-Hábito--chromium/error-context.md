@@ -1,0 +1,68 @@
+# Page snapshot
+
+```yaml
+- complementary:
+  - link "Ery":
+    - /url: /
+  - navigation:
+    - link "Inicio":
+      - /url: /
+      - img
+      - text: Inicio
+    - link "Mi Dashboard":
+      - /url: /my-dashboard
+      - img
+      - text: Mi Dashboard
+    - link "Mi Perfil":
+      - /url: /profile
+      - img
+      - text: Mi Perfil
+    - link "Mis Hábitos":
+      - /url: /habits
+      - img
+      - text: Mis Hábitos
+  - img "Avatar"
+  - paragraph: Test
+  - paragraph: usuario_estandar
+  - button "Cerrar Sesión":
+    - img
+    - text: Cerrar Sesión
+- banner:
+  - heading "Mis Hábitos y Adicciones" [level=1]
+- main:
+  - heading "Mi Panel de Hábitos" [level=2]
+  - button "+ Crear Hábito"
+  - heading "Mal Hábito Test" [level=3]
+  - paragraph: Test de mal hábito
+  - paragraph: "Tipo: MAL_HABITO"
+  - paragraph: "Registrar progreso para hoy (6/17/2025):"
+  - button "Registrar Recaída Hoy"
+  - heading "Hábito Sí/No" [level=3]
+  - paragraph: Sin descripción
+  - paragraph: "Tipo: SI_NO"
+  - paragraph: "Registrar progreso para hoy (6/17/2025):"
+  - button "Marcar como Hecho"
+  - heading "Hábito para Log Test" [level=3]
+  - paragraph: Sin descripción
+  - paragraph: "Tipo: SI_NO"
+  - paragraph: "Registrar progreso para hoy (6/17/2025):"
+  - button "Marcar como Hecho"
+  - heading "Test Hábito API" [level=3]
+  - paragraph: Hábito creado desde test de API
+  - paragraph: "Tipo: SI_NO"
+  - paragraph: "Registrar progreso para hoy (6/17/2025):"
+  - button "Marcar como Hecho"
+  - heading "Crear Nuevo Hábito" [level=2]
+  - text: Nombre del Hábito
+  - textbox "Nombre del Hábito": Fumar
+  - text: Descripción (opcional)
+  - textbox "Descripción (opcional)": Reducir el consumo de cigarrillos
+  - text: Tipo de Hábito
+  - combobox "Tipo de Hábito":
+    - option "Sí / No (ej. Meditar)"
+    - option "Medible (ej. Leer páginas)"
+    - option "Dejar un Mal Hábito (ej. Dejar de fumar)" [selected]
+  - button "Cancelar"
+  - button "Crear Hábito"
+- alert
+```
