@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       }
 
       const newUser = {
-        id: newUserId,
+        id: String(newUserId),
         nombre,
         email,
       };
