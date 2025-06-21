@@ -118,7 +118,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger }) {
       // Si es un inicio de sesión, asignamos el ID del usuario al token
       if (user) {
-        token.id = user.id;
+        token.id = typeof user.id === "string" ? Number(user.id) : user.id;
       }
 
       // **CORRECCIÓN CLAVE**: Si el token tiene un ID pero no tiene roles, 
