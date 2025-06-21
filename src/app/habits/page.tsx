@@ -1,4 +1,3 @@
-// src/app/habits/page.tsx
 'use client';
 
 import React, { useEffect, useState, useCallback, FormEvent } from 'react';
@@ -23,7 +22,19 @@ interface NewHabit {
   meta_objetivo?: number;
 }
 
-const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+// 1. CORRECCIÓN DE LA GESTIÓN DE FECHAS
+// Obtenemos la fecha local del usuario una sola vez.
+const localToday = new Date(); 
+
+// Helper para formatear la fecha a YYYY-MM-DD para la API, respetando la zona horaria local.
+function getLocalDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+const todayStringForAPI = getLocalDateString(localToday);
 
 export default function HabitsPage() {
   const { data: session, status } = useSession();
@@ -57,7 +68,6 @@ export default function HabitsPage() {
     }
   }, [status, router, fetchHabits]);
   
-  // --- Renderizado Condicional ---
   if (status === 'loading' || isLoading) {
     return <MainLayout pageTitle="Mis Hábitos"><div className="text-center">Cargando...</div></MainLayout>;
   }
@@ -66,7 +76,6 @@ export default function HabitsPage() {
     return <MainLayout pageTitle="Redirigiendo"><div className="text-center">Redirigiendo a inicio de sesión...</div></MainLayout>;
   }
   
-  // --- Componente Principal ---
   return (
     <MainLayout pageTitle="Mis Hábitos y Adicciones">
       <div className="flex justify-between items-center mb-6">
@@ -105,7 +114,6 @@ export default function HabitsPage() {
   );
 }
 
-
 // --- Componente para la tarjeta de cada hábito ---
 type Notification = {
     message: string;
@@ -113,22 +121,19 @@ type Notification = {
 };
 
 const HabitCard: React.FC<{ habit: Habit }> = ({ habit }) => {
-    // 1. MEJORA DE UX: ESTADO PARA NOTIFICACIONES
     const [notification, setNotification] = useState<Notification | null>(null);
 
     const showNotification = (message: string, type: 'success' | 'error') => {
         setNotification({ message, type });
-        setTimeout(() => setNotification(null), 3000); // La notificación desaparece después de 3 segundos
+        setTimeout(() => setNotification(null), 3000);
     };
 
-    // 2. LÓGICA DE logProgress ACTUALIZADA
-    // Ahora acepta un objeto para mayor claridad y se alinea con la nueva API.
     const logProgress = async (payload: { valor_booleano?: boolean; valor_numerico?: number; es_recaida?: boolean; }) => {
-        setNotification(null); // Limpiar notificaciones previas
+        setNotification(null);
         try {
             const body = {
                 habito_id: habit.id,
-                fecha_registro: today,
+                fecha_registro: todayStringForAPI, // 2. Usamos la cadena formateada para la API
                 ...payload
             };
             
@@ -148,7 +153,6 @@ const HabitCard: React.FC<{ habit: Habit }> = ({ habit }) => {
         }
     };
     
-    // 3. LÓGICA DE renderAction ACTUALIZADA
     const renderAction = () => {
         switch (habit.tipo) {
             case 'SI_NO':
@@ -170,7 +174,6 @@ const HabitCard: React.FC<{ habit: Habit }> = ({ habit }) => {
                     </form>
                 );
             case 'MAL_HABITO':
-                // Ahora envía `es_recaida: true`
                 return (
                     <button onClick={() => logProgress({ es_recaida: true })} className="w-full mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-semibold">
                         Registrar Recaída Hoy
@@ -189,7 +192,8 @@ const HabitCard: React.FC<{ habit: Habit }> = ({ habit }) => {
                 <p className="text-xs text-indigo-400 mt-2 font-mono">Tipo: {habit.tipo}</p>
             </div>
             <div className="mt-4">
-                <p className="text-sm text-gray-400">Registrar progreso para hoy ({new Date(today).toLocaleDateString()}):</p>
+                {/* 3. Usamos el objeto Date local para mostrar la fecha */}
+                <p className="text-sm text-gray-400">Registrar progreso para hoy ({localToday.toLocaleDateString()}):</p>
                 {renderAction()}
                 {notification && (
                     <div className={`mt-3 p-2 text-sm text-center rounded-md ${notification.type === 'success' ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'}`}>
