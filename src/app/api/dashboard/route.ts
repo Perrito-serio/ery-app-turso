@@ -4,20 +4,21 @@ import { verifyApiAuth } from '@/lib/apiAuthUtils';
 import { query } from '@/lib/db';
 import { Row } from '@libsql/client';
 
-// --- Interfaces adaptadas para Turso/SQLite ---
+// --- Interfaces (sin cambios) ---
 interface HabitFromDB extends Row {
   id: number;
   nombre: string;
   descripcion: string | null;
   tipo: 'SI_NO' | 'MEDIBLE_NUMERICO' | 'MAL_HABITO';
   meta_objetivo: number | null;
-  fecha_creacion: string; // SQLite devuelve fechas como strings
+  fecha_creacion: string;
 }
 
 interface HabitLogFromDB extends Row {
   habito_id: number;
   fecha_registro: string;
-  valor_booleano: number | null; // SQLite devuelve 0 o 1 para booleanos
+  valor_booleano: number | null;
+  es_recaida: number | null;
 }
 
 interface HabitWithStats extends HabitFromDB {
@@ -47,8 +48,9 @@ export async function GET(request: NextRequest) {
 
     const habitIds = habits.map(h => h.id);
     const placeholders = habitIds.map(() => '?').join(',');
+
     const logsRs = await query({
-      sql: `SELECT habito_id, fecha_registro, valor_booleano FROM registros_habitos WHERE habito_id IN (${placeholders}) ORDER BY fecha_registro DESC`,
+      sql: `SELECT habito_id, fecha_registro, valor_booleano, es_recaida FROM registros_habitos WHERE habito_id IN (${placeholders}) ORDER BY fecha_registro DESC`,
       args: habitIds
     });
     const logs = logsRs.rows as unknown as HabitLogFromDB[];
@@ -66,13 +68,15 @@ export async function GET(request: NextRequest) {
       let racha_actual = 0;
 
       if (habit.tipo === 'MAL_HABITO') {
-        let lastRelapseDate: Date | null = null;
-        for (const log of habitLogs) {
-            lastRelapseDate = new Date(log.fecha_registro);
-            break;
-        }
-        const startDate = lastRelapseDate ? lastRelapseDate : new Date(habit.fecha_creacion);
-        racha_actual = calculateDaysBetween(startDate, new Date());
+        const ultimaRecaida = habitLogs.find(log => log.es_recaida === 1);
+        
+        // CORRECCIÓN: Usamos la función parseDateAsLocal para evitar problemas de zona horaria.
+        const fechaInicioRacha = ultimaRecaida 
+            ? parseDateAsLocal(ultimaRecaida.fecha_registro) 
+            : parseDateAsLocal(habit.fecha_creacion);
+        
+        racha_actual = calculateDaysBetween(fechaInicioRacha, new Date());
+
       } else {
         racha_actual = calculateConsecutiveDays(habitLogs);
       }
@@ -88,13 +92,33 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// --- Funciones de Ayuda (sin cambios) ---
+// --- Funciones de Ayuda ---
+
+// FUNCIÓN NUEVA: Parsea una fecha 'YYYY-MM-DD' como fecha local para evitar errores de UTC.
+function parseDateAsLocal(dateString: string): Date {
+    // Si la fecha incluye hora (ej. de 'fecha_creacion'), la quitamos.
+    const dateOnly = dateString.split(' ')[0];
+    const [year, month, day] = dateOnly.split('-').map(Number);
+    // Creamos la fecha usando componentes numéricos para asegurar que sea local.
+    // El mes en el constructor de Date es 0-indexado (0=Enero, 1=Febrero...).
+    return new Date(year, month - 1, day);
+}
+
 function calculateDaysBetween(startDate: Date, endDate: Date): number {
+    // Normalizamos ambas fechas a la medianoche para una comparación precisa.
     const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-    const diffTime = Math.abs(end.getTime() - start.getTime());
+    
+    const diffTime = end.getTime() - start.getTime();
+    
+    // Si la diferencia es negativa o cero, la racha es 0.
+    if (diffTime <= 0) {
+        return 0;
+    }
+    
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
+
 
 function calculateConsecutiveDays(logs: HabitLogFromDB[]): number {
   let streak = 0;
@@ -102,9 +126,8 @@ function calculateConsecutiveDays(logs: HabitLogFromDB[]): number {
   today.setHours(0, 0, 0, 0);
 
   const logDates = new Set(logs.filter(log => log.valor_booleano === 1).map(log => {
-      const d = new Date(log.fecha_registro);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime();
+      // Usamos la nueva función segura para parsear.
+      return parseDateAsLocal(log.fecha_registro).getTime();
   }));
 
   let currentDate = new Date(today);

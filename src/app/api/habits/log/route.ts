@@ -4,21 +4,28 @@ import { verifyApiAuth } from '@/lib/apiAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 
-// Esquema de Zod (sin cambios)
+// 1. ESQUEMA DE ZOD ACTUALIZADO
+// Se añade el campo `es_recaida` y se refina la validación para que solo uno de los
+// tres tipos de valor (`valor_booleano`, `valor_numerico`, `es_recaida`) pueda ser proporcionado.
 const logHabitSchema = z.object({
   habito_id: z.number().int().positive("El ID del hábito debe ser válido."),
   fecha_registro: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe estar en formato YYYY-MM-DD."),
   valor_booleano: z.boolean().optional(),
   valor_numerico: z.number().optional(),
+  es_recaida: z.boolean().optional(), // Nuevo campo para malos hábitos
   notas: z.string().optional().nullable(),
 }).refine(data => {
-    return data.valor_booleano !== undefined || data.valor_numerico !== undefined;
+    // Cuenta cuántos de los campos de valor se han proporcionado.
+    // CORRECCIÓN: Se ha arreglado el error de sintaxis aquí.
+    const providedValues = [data.valor_booleano, data.valor_numerico, data.es_recaida].filter(v => v !== undefined).length;
+    // La validación es correcta si se proporciona exactamente un valor.
+    return providedValues === 1;
 }, {
-    message: "Se debe proporcionar un valor booleano o numérico para el registro.",
-    path: ["valor_booleano"],
+    message: "Se debe proporcionar exactamente un valor: 'valor_booleano', 'valor_numerico' o 'es_recaida'.",
+    path: ["valor_booleano"], // El error se asocia a un campo para la visualización.
 });
 
-// --- Interfaces (limpiadas de dependencias de mysql2) ---
+// --- Interfaces (sin cambios) ---
 interface HabitInfo {
   usuario_id: number;
   tipo: 'SI_NO' | 'MEDIBLE_NUMERICO' | 'MAL_HABITO';
@@ -46,11 +53,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Datos de entrada inválidos.", errors: validation.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { habito_id, fecha_registro, valor_booleano, valor_numerico, notas } = validation.data;
-  // Convertimos el booleano a 0/1 para SQLite
+  // 2. OBTENER NUEVOS DATOS Y PREPARARLOS PARA SQLITE
+  const { habito_id, fecha_registro, valor_booleano, valor_numerico, es_recaida, notas } = validation.data;
+  
+  // Convertimos los booleanos a 0/1 para SQLite.
   const valorBooleanoNumerico = valor_booleano !== undefined ? (valor_booleano ? 1 : 0) : null;
+  const esRecaidaNumerico = es_recaida !== undefined ? (es_recaida ? 1 : 0) : 0; // Default a 0 (false) si no se proporciona
 
   try {
+    // Obtener información del hábito (sin cambios)
     const habitCheckRs = await query({
         sql: 'SELECT usuario_id, tipo FROM habitos WHERE id = ?',
         args: [habito_id]
@@ -63,15 +74,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Acceso denegado. No tienes permiso para registrar en este hábito.' }, { status: 403 });
     }
     
-    // Validaciones de tipo (sin cambios)
-    if (habitInfo.tipo === 'SI_NO' && typeof valor_booleano !== 'boolean') {
-        return NextResponse.json({ message: 'Este hábito requiere un valor booleano (true/false).' }, { status: 400 });
-    }
-    if (habitInfo.tipo === 'MEDIBLE_NUMERICO' && typeof valor_numerico !== 'number') {
-        return NextResponse.json({ message: 'Este hábito requiere un valor numérico.' }, { status: 400 });
-    }
-    if (habitInfo.tipo === 'MAL_HABITO' && typeof valor_booleano !== 'boolean') {
-        return NextResponse.json({ message: 'Para un mal hábito, se debe registrar un valor booleano.' }, { status: 400 });
+    // 3. LÓGICA DE VALIDACIÓN MEJORADA
+    // Se asegura de que el valor proporcionado coincida con el tipo de hábito.
+    switch (habitInfo.tipo) {
+      case 'SI_NO':
+        if (typeof valor_booleano !== 'boolean') {
+          return NextResponse.json({ message: 'Este hábito requiere un valor booleano (true/false).' }, { status: 400 });
+        }
+        break;
+      case 'MEDIBLE_NUMERICO':
+        if (typeof valor_numerico !== 'number') {
+          return NextResponse.json({ message: 'Este hábito requiere un valor numérico.' }, { status: 400 });
+        }
+        break;
+      case 'MAL_HABITO':
+        if (typeof es_recaida !== 'boolean') {
+          return NextResponse.json({ message: 'Para un mal hábito, se debe registrar si hubo una recaída (true/false).' }, { status: 400 });
+        }
+        break;
+      default:
+        return NextResponse.json({ message: 'Tipo de hábito desconocido.' }, { status: 500 });
     }
 
     const existingLogRs = await query({
@@ -79,21 +101,25 @@ export async function POST(request: NextRequest) {
         args: [habito_id, fecha_registro]
     });
 
+    // 4. ACTUALIZACIÓN DE LAS CONSULTAS SQL
     if (existingLogRs.rows.length > 0) {
       const logId = (existingLogRs.rows[0] as unknown as ExistingLog).id;
       console.log(`Actualizando registro existente (ID: ${logId}) para el hábito ID: ${habito_id}`);
       
+      // La sentencia UPDATE ahora incluye `es_recaida`.
       await query({
-        sql: 'UPDATE registros_habitos SET valor_booleano = ?, valor_numerico = ?, notas = ? WHERE id = ?',
-        args: [valorBooleanoNumerico, valor_numerico ?? null, notas ?? null, logId]
+        sql: 'UPDATE registros_habitos SET valor_booleano = ?, valor_numerico = ?, es_recaida = ?, notas = ? WHERE id = ?',
+        args: [valorBooleanoNumerico, valor_numerico ?? null, esRecaidaNumerico, notas ?? null, logId]
       });
       return NextResponse.json({ message: "Registro de hábito actualizado exitosamente." });
+
     } else {
       console.log(`Creando nuevo registro para el hábito ID: ${habito_id} en la fecha: ${fecha_registro}`);
       
+      // La sentencia INSERT ahora incluye `es_recaida`.
       const result = await query({
-        sql: 'INSERT INTO registros_habitos (habito_id, fecha_registro, valor_booleano, valor_numerico, notas) VALUES (?, ?, ?, ?, ?)',
-        args: [habito_id, fecha_registro, valorBooleanoNumerico, valor_numerico ?? null, notas ?? null]
+        sql: 'INSERT INTO registros_habitos (habito_id, fecha_registro, valor_booleano, valor_numerico, es_recaida, notas) VALUES (?, ?, ?, ?, ?, ?)',
+        args: [habito_id, fecha_registro, valorBooleanoNumerico, valor_numerico ?? null, esRecaidaNumerico, notas ?? null]
       });
       return NextResponse.json({ message: "Progreso del hábito registrado exitosamente.", logId: Number(result.lastInsertRowid) }, { status: 201 });
     }
