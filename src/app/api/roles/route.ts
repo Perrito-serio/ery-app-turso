@@ -1,6 +1,6 @@
 // src/app/api/roles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { Row } from '@libsql/client';
 
@@ -12,13 +12,19 @@ interface RoleData extends Row {
 }
 
 export async function GET(request: NextRequest) {
-  const { session, errorResponse } = await verifyApiAuth(['administrador']);
-
-  if (errorResponse) {
-    return errorResponse;
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
   }
 
-  console.log(`Administrador ${session?.user?.email} (ID: ${session?.user?.id}) está solicitando la lista de todos los roles.`);
+  // Verificar autorización
+  const roleError = requireRoles(authResult.user, ['administrador']);
+  if (roleError) {
+    return createAuthErrorResponse(roleError);
+  }
+
+  console.log(`Administrador ${authResult.user?.email} (ID: ${authResult.user?.id}) está solicitando la lista de todos los roles.`);
 
   try {
     const rolesRs = await query({

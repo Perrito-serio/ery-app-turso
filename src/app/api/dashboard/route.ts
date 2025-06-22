@@ -1,6 +1,6 @@
 // src/app/api/dashboard/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { Row } from '@libsql/client';
 
@@ -35,13 +35,12 @@ function parseDateAsLocal(dateString: string): Date {
 
 // --- Función Principal del Endpoint ---
 export async function GET(request: NextRequest) {
-  const { session, errorResponse } = await verifyApiAuth();
-  if (errorResponse) { return errorResponse; }
-
-  const userId = session?.user?.id;
-  if (!userId) {
-    return NextResponse.json({ message: 'No se pudo identificar al usuario.' }, { status: 401 });
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
   }
+
+  const userId = parseInt(authResult.user.id);
 
   try {
     const habitsRs = await query({

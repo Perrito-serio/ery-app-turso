@@ -1,6 +1,6 @@
 // src/app/api/users/[userId]/details/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -33,8 +33,17 @@ const updateUserSchema = z.object({
 
 // --- GET: Obtener detalles del usuario para el formulario ---
 export async function GET(request: NextRequest, context: RouteContext) {
-  const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
-  if (authError) { return authError; }
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
+
+  // Verificar autorización
+   const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
+   if (roleError) {
+     return createAuthErrorResponse(roleError);
+   }
 
   const { userId: targetUserIdString } = context.params;
   const targetUserId = parseInt(targetUserIdString, 10);
@@ -42,7 +51,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'ID de usuario a obtener es inválido.' }, { status: 400 });
   }
 
-  const requesterIsAdmin = session?.user?.roles?.includes('administrador');
+  const requesterRoles = authResult.user.roles || [authResult.user.role];
+  const requesterIsAdmin = requesterRoles.includes('administrador');
   if (!requesterIsAdmin) {
     try {
       const targetUserRolesRs = await query({
@@ -79,8 +89,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 // --- PUT: Actualizar detalles del usuario ---
 export async function PUT(request: NextRequest, context: RouteContext) {
-  const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
-  if (authError) { return authError; }
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
+
+  // Verificar autorización
+   const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
+   if (roleError) {
+     return createAuthErrorResponse(roleError);
+   }
 
   const { userId: targetUserIdString } = context.params;
   const targetUserId = parseInt(targetUserIdString, 10);
@@ -88,7 +107,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
   }
 
-  const requesterIsAdmin = session?.user?.roles?.includes('administrador');
+  const requesterRoles2 = authResult.user.roles || [authResult.user.role];
+  const requesterIsAdmin = requesterRoles2.includes('administrador');
   if (!requesterIsAdmin) {
     // La lógica de permisos para un moderador se puede añadir aquí si es necesario
   }

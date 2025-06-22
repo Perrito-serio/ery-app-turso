@@ -25,12 +25,12 @@ interface RoleId {
 // --- Aumentación de Tipos (sin cambios) ---
 declare module "next-auth" {
   interface Session extends DefaultSession {
-    user: { id?: number; roles?: string[]; } & DefaultSession["user"];
+    user: { id: number; roles?: string[]; role: string; } & DefaultSession["user"];
   }
-  interface User { id?: number; roles?: string[]; }
+  interface User { id: number; roles?: string[]; role: string; }
 }
 declare module "next-auth/jwt" {
-  interface JWT { id?: number; roles?: string[]; }
+  interface JWT { id: number; roles?: string[]; role: string; }
 }
 
 const loginSchema = z.object({
@@ -67,7 +67,21 @@ export const authOptions: NextAuthOptions = {
           const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
           if (!isPasswordMatch) { return null; }
           
-          return { id: user.id, name: user.nombre, email: user.email };
+          // Obtener roles del usuario
+          const rolesRs = await query({
+            sql: `SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`,
+            args: [user.id]
+          });
+          const userRoles = rolesRs.rows.map(r => (r as unknown as UserRole).nombre_rol);
+          const primaryRole = userRoles.length > 0 ? userRoles[0] : 'usuario_estandar';
+          
+          return { 
+            id: user.id, 
+            name: user.nombre, 
+            email: user.email,
+            role: primaryRole,
+            roles: userRoles
+          };
         }
     })
   ],
@@ -119,6 +133,8 @@ export const authOptions: NextAuthOptions = {
       // Si es un inicio de sesión, asignamos el ID del usuario al token
       if (user) {
         token.id = typeof user.id === "string" ? Number(user.id) : user.id;
+        token.role = user.role;
+        token.roles = user.roles;
       }
 
       // **CORRECCIÓN CLAVE**: Si el token tiene un ID pero no tiene roles, 
@@ -130,10 +146,13 @@ export const authOptions: NextAuthOptions = {
                 sql: `SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`,
                 args: [token.id]
             });
-            token.roles = rolesRs.rows.map(r => (r as unknown as UserRole).nombre_rol);
+            const userRoles = rolesRs.rows.map(r => (r as unknown as UserRole).nombre_rol);
+            token.roles = userRoles;
+            token.role = userRoles.length > 0 ? userRoles[0] : 'usuario_estandar';
           } catch (error) {
             console.error("Error recargando roles para el token JWT:", error);
             token.roles = []; // Dejar los roles vacíos en caso de error
+            token.role = 'usuario_estandar';
           }
       }
       return token;
@@ -143,7 +162,10 @@ export const authOptions: NextAuthOptions = {
       if (token?.id) {
         session.user.id = token.id;
         session.user.roles = token.roles;
+        session.user.role = token.role;
         session.user.name = token.name;
+        // Expose the JWT token for mobile applications
+        session.accessToken = token as any;
       }
       return session;
     },

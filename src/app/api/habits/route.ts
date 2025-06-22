@@ -1,6 +1,6 @@
 // src/app/api/habits/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
@@ -36,12 +36,12 @@ interface Habit extends Row {
 
 // --- GET /api/habits ---
 export async function GET(request: NextRequest) {
-  const { session, errorResponse } = await verifyApiAuth();
-  if (errorResponse) {
-    return errorResponse;
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
   }
 
-  const userId = session?.user?.id;
+  const userId = authResult.user.id;
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }
@@ -65,11 +65,11 @@ export async function GET(request: NextRequest) {
 
 // --- POST /api/habits ---
 export async function POST(request: NextRequest) {
-  const { session, errorResponse } = await verifyApiAuth();
-  if (errorResponse) {
-    return errorResponse;
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
   }
-  const userId = session?.user?.id;
+  const userId = authResult.user.id;
 
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });

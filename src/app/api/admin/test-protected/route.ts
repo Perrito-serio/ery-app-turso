@@ -1,21 +1,35 @@
 // src/app/api/admin/test-protected/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils'; // 1. Usar la nueva utilidad de NextAuth.js
+import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 
 export async function GET(request: NextRequest) {
-  // 2. Proteger la ruta con la nueva función. Ya no se pasa 'request'.
-  const { session, errorResponse } = await verifyApiAuth(['administrador']);
+  try {
+    // Verificar autenticación
+    const authResult = await getAuthenticatedUser(request);
+    if (!authResult.success) {
+      return createAuthErrorResponse(authResult);
+    }
 
-  if (errorResponse) {
-    return errorResponse; // Si hay error de autenticación/autorización, devolverlo
+    // Verificar autorización
+    const roleError = requireRoles(authResult.user, ['administrador']);
+    if (roleError) {
+      return createAuthErrorResponse(roleError);
+    }
+
+    return NextResponse.json({
+      message: 'Acceso autorizado al endpoint protegido',
+      user: {
+        id: authResult.user.id,
+        email: authResult.user.email,
+        role: authResult.user.role,
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
-
-  // 3. Acceder a la información del usuario a través del objeto 'session'
-  return NextResponse.json({
-    message: `Hola, Administrador ${session?.user?.name}! Has accedido a una ruta protegida.`,
-    userId: session?.user?.id,
-    userRoles: session?.user?.roles,
-  });
 }
 
 // Podrías añadir POST, PUT, DELETE, etc., y protegerlos de la misma manera.

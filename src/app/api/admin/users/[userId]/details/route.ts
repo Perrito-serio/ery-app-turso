@@ -1,6 +1,6 @@
 // src/app/api/admin/users/[userId]/details/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -32,8 +32,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
-  const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
-  if (authError) { return authError; }
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
+
+  // Verificar autorización
+  const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
+  if (roleError) {
+    return createAuthErrorResponse(roleError);
+  }
 
   const targetUserId = parseInt(params.userId, 10);
 
@@ -41,7 +50,8 @@ export async function GET(
     return NextResponse.json({ message: 'ID de usuario a obtener es inválido.' }, { status: 400 });
   }
 
-  const requesterIsAdmin = session?.user?.roles?.includes('administrador');
+  const requesterRoles = authResult.user.roles || [authResult.user.role];
+   const requesterIsAdmin = requesterRoles.includes('administrador');
   if (!requesterIsAdmin) {
     try {
       const targetUserRolesRs = await query({
@@ -81,8 +91,17 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
-  const { session, errorResponse: authError } = await verifyApiAuth(['administrador', 'moderador_contenido']);
-  if (authError) { return authError; }
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
+
+  // Verificar autorización
+  const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
+  if (roleError) {
+    return createAuthErrorResponse(roleError);
+  }
 
   const targetUserId = parseInt(params.userId, 10);
 
@@ -90,7 +109,8 @@ export async function PUT(
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
   }
 
-  const requesterIsAdmin = session?.user?.roles?.includes('administrador');
+  const requesterRoles3 = authResult.user.roles || [authResult.user.role];
+  const requesterIsAdmin = requesterRoles3.includes('administrador');
   if (!requesterIsAdmin) { /* ... */ }
 
   let body;

@@ -1,6 +1,6 @@
 // src/app/api/habits/[habitoId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 
@@ -22,10 +22,12 @@ interface RouteContext {
 // --- PUT /api/habits/[habitoId] ---
 // Permite a un usuario editar uno de sus propios hábitos.
 export async function PUT(request: NextRequest, context: RouteContext) {
-  const { session, errorResponse } = await verifyApiAuth();
-  if (errorResponse) { return errorResponse; }
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
 
-  const userId = session?.user?.id;
+  const userId = authResult.user.id;
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }
@@ -90,10 +92,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 // --- DELETE /api/habits/[habitoId] ---
 // Permite a un usuario eliminar uno de sus propios hábitos.
 export async function DELETE(request: NextRequest, context: RouteContext) {
-  const { session, errorResponse } = await verifyApiAuth();
-  if (errorResponse) { return errorResponse; }
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
 
-  const userId = session?.user?.id;
+  const userId = authResult.user.id;
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }

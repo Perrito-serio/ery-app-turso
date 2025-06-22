@@ -1,6 +1,6 @@
 // src/app/api/admin/users/[userId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -45,8 +45,17 @@ const adminUpdateUserSchema = z.object({
 
 // --- GET: Obtener detalles y roles de un usuario ---
 export async function GET(request: NextRequest, context: RouteContext) {
-  const { session, errorResponse: authError } = await verifyApiAuth(['administrador']);
-  if (authError) { return authError; }
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
+
+  // Verificar autorización
+  const roleError = requireRoles(authResult.user, ['administrador']);
+  if (roleError) {
+    return createAuthErrorResponse(roleError);
+  }
 
   const { userId } = context.params;
   const numericUserId = parseInt(userId, 10);
@@ -89,9 +98,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 // --- PUT: Actualizar detalles de un usuario por un administrador ---
 export async function PUT(request: NextRequest, context: RouteContext) {
-  const { session, errorResponse: authError } = await verifyApiAuth(['administrador']);
-  if (authError) {
-    return authError;
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
+
+  // Verificar autorización
+  const roleError = requireRoles(authResult.user, ['administrador']);
+  if (roleError) {
+    return createAuthErrorResponse(roleError);
   }
 
   const { userId: targetUserIdString } = context.params;

@@ -1,6 +1,6 @@
 // src/app/api/admin/users/[userId]/toggle-active/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 
 // --- Interfaces (sin cambios) ---
@@ -15,10 +15,16 @@ interface RouteContext {
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
-  const { session, errorResponse: authError } = await verifyApiAuth(['administrador']);
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
 
-  if (authError) {
-    return authError;
+  // Verificar autorización
+  const roleError = requireRoles(authResult.user, ['administrador']);
+  if (roleError) {
+    return createAuthErrorResponse(roleError);
   }
 
   const { userId } = context.params;
@@ -28,7 +34,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'ID de usuario inválido en la ruta.' }, { status: 400 });
   }
 
-  if (session?.user?.id === numericUserId) {
+  if (parseInt(authResult.user.id) === numericUserId) {
     return NextResponse.json({ message: 'Un administrador no puede cambiar su propio estado activo a través de esta interfaz.' }, { status: 403 });
   }
 

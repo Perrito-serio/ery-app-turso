@@ -1,6 +1,6 @@
 // src/app/api/habits/log/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 
@@ -36,13 +36,12 @@ interface ExistingLog {
 }
 
 export async function POST(request: NextRequest) {
-  const { session, errorResponse } = await verifyApiAuth();
-  if (errorResponse) { return errorResponse; }
-
-  const userId = session?.user?.id;
-  if (!userId) {
-    return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
   }
+
+  const userId = parseInt(authResult.user.id);
 
   let body;
   try { body = await request.json(); } 

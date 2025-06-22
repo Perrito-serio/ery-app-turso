@@ -1,6 +1,6 @@
 // src/app/api/profile/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -45,10 +45,12 @@ const updateProfileSchema = z.object({
 
 
 export async function PUT(request: NextRequest) {
-  const { session, errorResponse: authError } = await verifyApiAuth();
-  if (authError) { return authError; }
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
 
-  const userId = session?.user?.id;
+  const userId = parseInt(authResult.user.id);
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }

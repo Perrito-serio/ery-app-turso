@@ -1,6 +1,6 @@
 // src/app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyApiAuth } from '@/lib/apiAuthUtils';
+import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 
 // --- Interfaces (limpiadas de dependencias de mysql2) ---
@@ -15,16 +15,22 @@ interface UserListData {
 }
 
 export async function GET(request: NextRequest) {
-  const { session, errorResponse } = await verifyApiAuth(['administrador', 'moderador_contenido']);
-
-  if (errorResponse) {
-    return errorResponse;
+  // Verificar autenticación
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
   }
 
-  const requesterRoles = session?.user?.roles || [];
-  const isRequesterAdmin = requesterRoles.includes('administrador');
+  // Verificar autorización
+  const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
+  if (roleError) {
+    return createAuthErrorResponse(roleError);
+  }
 
-  console.log(`Usuario ${session?.user?.email} (Roles: ${requesterRoles.join(', ')}) está solicitando la lista de usuarios.`);
+  const requesterRoles = authResult.user.roles || [authResult.user.role];
+   const isRequesterAdmin = requesterRoles.includes('administrador');
+
+   console.log(`Usuario ${authResult.user.email} (Roles: ${requesterRoles.join(', ')}) está solicitando la lista de usuarios.`);
 
   try {
     let usersQuery: string;
