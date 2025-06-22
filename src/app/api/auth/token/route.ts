@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken'; // Necesitamos jsonwebtoken para firmar el token
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
-// Reutilizamos el esquema de validación y las interfaces de tu archivo de next-auth
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
@@ -32,10 +31,14 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = parsedCredentials.data;
 
-    // --- Lógica de validación copiada de tu función 'authorize' ---
+    // --- CORRECCIÓN: Limpiar los datos de entrada ---
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    // Usamos las variables limpias para la consulta
     const rs = await query({
       sql: 'SELECT id, email, nombre, password_hash, activo FROM usuarios WHERE email = ?',
-      args: [email],
+      args: [trimmedEmail],
     });
 
     if (rs.rows.length === 0) {
@@ -48,7 +51,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'La cuenta está desactivada' }, { status: 403 });
     }
 
-    const isPasswordMatch = await bcrypt.compare(password, user.password_hash);
+    // Usamos la variable limpia para la comparación
+    const isPasswordMatch = await bcrypt.compare(trimmedPassword, user.password_hash);
     if (!isPasswordMatch) {
       return NextResponse.json({ message: 'Credenciales incorrectas' }, { status: 401 });
     }
@@ -58,9 +62,7 @@ export async function POST(request: NextRequest) {
       args: [user.id],
     });
     const userRoles = rolesRs.rows.map(r => (r as unknown as UserRole).nombre_rol);
-    // --- Fin de la lógica de validación ---
 
-    // Crear el payload del token (lo que irá dentro del JWT)
     const tokenPayload = {
       id: user.id,
       name: user.nombre,
@@ -69,12 +71,10 @@ export async function POST(request: NextRequest) {
       role: userRoles.length > 0 ? userRoles[0] : 'usuario_estandar',
     };
     
-    // Firmar el token con el mismo secreto que usa next-auth
     const token = jwt.sign(tokenPayload, process.env.NEXTAUTH_SECRET!, {
-      expiresIn: '30d', // Puedes ajustar la expiración
+      expiresIn: '30d',
     });
 
-    // Devolver una respuesta JSON clara con el token y los datos del usuario
     return NextResponse.json({
       success: true,
       token: token,

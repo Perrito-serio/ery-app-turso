@@ -1,10 +1,8 @@
-// src/app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
-// --- Esquema de validación con Zod (sin cambios) ---
 const registerSchema = z.object({
   nombre: z.string()
     .min(3, { message: "El nombre debe tener al menos 3 caracteres." })
@@ -25,7 +23,6 @@ const registerSchema = z.object({
   pais: z.string().max(100).optional().or(z.literal('')),
 });
 
-// --- Interfaces (limpiadas de dependencias de mysql2) ---
 interface ExistingUser {
   id: number;
 }
@@ -55,27 +52,35 @@ export async function POST(request: NextRequest) {
 
   const { nombre, apellido, email, password, fecha_nacimiento, telefono, direccion, ciudad, pais } = validation.data;
 
+  // --- CORRECCIÓN: Limpiar los datos de entrada antes de usarlos ---
+  const trimmedNombre = nombre.trim();
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
+
   try {
+    // Usamos el email limpio para verificar si ya existe
     const existingUserRs = await query({
         sql: 'SELECT id FROM usuarios WHERE email = ?',
-        args: [email]
+        args: [trimmedEmail]
     });
     if (existingUserRs.rows.length > 0) {
       return NextResponse.json({ message: 'El correo electrónico ya está registrado.' }, { status: 409 });
     }
 
+    // Usamos la contraseña limpia para crear el hash
     const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
+    const password_hash = await bcrypt.hash(trimmedPassword, salt);
 
+    // Guardamos los datos limpios en la base de datos
     const result = await query({
         sql: `
           INSERT INTO usuarios (nombre, apellido, email, password_hash, fecha_nacimiento, telefono, direccion, ciudad, pais, activo)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         args: [
-            nombre, 
+            trimmedNombre, 
             apellido || null, 
-            email, 
+            trimmedEmail, 
             password_hash, 
             fecha_nacimiento || null, 
             telefono || null, 
@@ -109,8 +114,8 @@ export async function POST(request: NextRequest) {
 
       const newUser = {
         id: String(newUserId),
-        nombre,
-        email,
+        nombre: trimmedNombre,
+        email: trimmedEmail,
       };
       return NextResponse.json({ message: 'Usuario registrado exitosamente.', user: newUser }, { status: 201 });
     } else {
