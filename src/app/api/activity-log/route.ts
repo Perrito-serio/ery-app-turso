@@ -5,20 +5,19 @@ import { query } from '@/lib/db';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
 
-// Esquema para validar los parámetros de entrada (mes y año)
+// Esquema para validar los parámetros de entrada (sin cambios)
 const schema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
   month: z.coerce.number().int().min(1).max(12),
 });
 
-// --- Interfaces para los datos de la base de datos ---
+// --- Interfaces (sin cambios) ---
 interface ActivityLogFromDB extends Row {
     fecha_registro: string;
-    completados: number; // CAST a number ya que COUNT devuelve BigInt
-    recaidas: number; // CAST a number
+    completados: number;
+    recaidas: number;
 }
 
-// Interfaz para la respuesta final de la API
 interface DailyActivity {
     completions: number;
     hasRelapse: boolean;
@@ -45,18 +44,22 @@ export async function GET(request: NextRequest) {
 
     const { year, month } = validation.data;
 
-    // Formatear las fechas de inicio y fin del mes para la consulta SQL
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = new Date(year, month, 0).getDate(); // Obtiene el último día del mes
+    const endDate = new Date(year, month, 0).getDate();
     const endDateStr = `${year}-${String(month).padStart(2, '0')}-${endDate}`;
 
     try {
-        // Consulta SQL optimizada que agrupa por día
+        // 1. CORRECCIÓN EN LA CONSULTA SQL
+        // La lógica de `SUM` para `completados` ahora incluye los hábitos medibles.
         const activityRs = await query({
             sql: `
                 SELECT
                     r.fecha_registro,
-                    CAST(SUM(CASE WHEN h.tipo != 'MAL_HABITO' AND r.valor_booleano = 1 THEN 1 ELSE 0 END) AS INTEGER) as completados,
+                    CAST(SUM(CASE
+                        WHEN h.tipo = 'SI_NO' AND r.valor_booleano = 1 THEN 1
+                        WHEN h.tipo = 'MEDIBLE_NUMERICO' AND r.valor_numerico IS NOT NULL THEN 1
+                        ELSE 0
+                    END) AS INTEGER) as completados,
                     CAST(SUM(CASE WHEN h.tipo = 'MAL_HABITO' AND r.es_recaida = 1 THEN 1 ELSE 0 END) AS INTEGER) as recaidas
                 FROM registros_habitos r
                 JOIN habitos h ON r.habito_id = h.id
@@ -71,7 +74,6 @@ export async function GET(request: NextRequest) {
 
         const activityData = activityRs.rows as unknown as ActivityLogFromDB[];
 
-        // Mapeamos los resultados a un formato más útil para el frontend
         const activityMap: Record<string, DailyActivity> = {};
         for (const row of activityData) {
             activityMap[row.fecha_registro] = {
