@@ -1,5 +1,6 @@
 // src/app/api/admin/test-protected/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { getDbClient } from '@/lib/db';
 import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 
 export async function GET(request: NextRequest) {
