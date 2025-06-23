@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     return createAuthErrorResponse(authResult);
   }
 
-  const userId = parseInt(authResult.user.id);
+  const userId = authResult.user.id;
 
   try {
     const habitsRs = await query({

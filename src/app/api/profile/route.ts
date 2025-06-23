@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest) {
     return createAuthErrorResponse(authResult);
   }
 
-  const userId = parseInt(authResult.user.id);
+  const userId = authResult.user.id;
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }
@@ -74,7 +74,7 @@ export async function PUT(request: NextRequest) {
     if (nuevaContraseña && contraseñaActual) {
       const userRs = await query({
         sql: 'SELECT password_hash FROM usuarios WHERE id = ?',
-        args: [userId]
+        args: [parseInt(userId, 10)]
       });
       if (userRs.rows.length === 0) {
         return NextResponse.json({ message: 'Usuario no encontrado.' }, { status: 404 });
@@ -103,7 +103,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const sqlSetClause = updateFields.join(', ');
-    updateValues.push(userId);
+    updateValues.push(parseInt(userId, 10));
 
     await query({
       sql: `UPDATE usuarios SET ${sqlSetClause} WHERE id = ?`,

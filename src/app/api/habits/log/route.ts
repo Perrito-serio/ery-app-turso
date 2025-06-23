@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return createAuthErrorResponse(authResult);
   }
 
-  const userId = parseInt(authResult.user.id);
+  const userId = authResult.user.id;
 
   let body;
   try { body = await request.json(); } 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: `Hábito con ID ${habito_id} no encontrado.` }, { status: 404 });
     }
     const habitInfo = habitCheckRs.rows[0] as unknown as HabitInfo;
-    if (habitInfo.usuario_id !== userId) {
+    if (String(habitInfo.usuario_id) !== userId) {
       return NextResponse.json({ message: 'Acceso denegado. No tienes permiso para registrar en este hábito.' }, { status: 403 });
     }
     

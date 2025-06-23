@@ -8,7 +8,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 // Las propiedades *dentro* de user sí pueden ser opcionales.
 interface AppSession extends Session {
   user: {
-    id: number;
+    id: string; // Unificado a string
     name?: string | null;
     email?: string | null;
     image?: string | null;

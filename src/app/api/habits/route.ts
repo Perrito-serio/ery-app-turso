@@ -26,7 +26,7 @@ const createHabitSchema = z.object({
 // --- Interfaces (limpiadas de dependencias de mysql2) ---
 interface Habit extends Row {
   id: number;
-  usuario_id: number;
+  usuario_id: string;
   nombre: string;
   descripcion: string | null;
   tipo: 'SI_NO' | 'MEDIBLE_NUMERICO' | 'MAL_HABITO';

@@ -34,7 +34,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'ID de usuario inválido en la ruta.' }, { status: 400 });
   }
 
-  if (parseInt(authResult.user.id) === numericUserId) {
+  if (authResult.user.id === userId) {
     return NextResponse.json({ message: 'Un administrador no puede cambiar su propio estado activo a través de esta interfaz.' }, { status: 403 });
   }
 

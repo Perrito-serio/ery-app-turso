@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const userRoles = rolesRs.rows.map(r => (r as unknown as UserRole).nombre_rol);
 
     const tokenPayload = {
-      id: user.id,
+      id: String(user.id),
       name: user.nombre,
       email: user.email,
       roles: userRoles,
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       success: true,
       token: token,
       user: {
-        id: user.id,
+        id: String(user.id),
         name: user.nombre,
         email: user.email,
         roles: userRoles,

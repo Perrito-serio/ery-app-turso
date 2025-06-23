@@ -55,7 +55,7 @@ export async function getAuthenticatedUser(
     return {
         success: true,
         user: {
-          id: String(token.id),
+          id: token.id as string,
           role: token.role as string,
           roles: token.roles as string[],
           email: token.email as string,

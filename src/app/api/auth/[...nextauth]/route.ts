@@ -22,16 +22,8 @@ interface RoleId {
   id: number;
 }
 
-// --- Aumentación de Tipos (sin cambios) ---
-declare module "next-auth" {
-  interface Session extends DefaultSession {
-    user: { id: number; roles?: string[]; role: string; } & DefaultSession["user"];
-  }
-  interface User { id: number; roles?: string[]; role: string; }
-}
-declare module "next-auth/jwt" {
-  interface JWT { id: number; roles?: string[]; role: string; }
-}
+// La aumentación de tipos ahora se basa en `src/types/next-auth.d.ts`,
+// donde el `id` ya está definido como `string`.
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -76,7 +68,7 @@ export const authOptions: NextAuthOptions = {
           const primaryRole = userRoles.length > 0 ? userRoles[0] : 'usuario_estandar';
           
           return { 
-            id: user.id, 
+            id: String(user.id), // Convertir a string
             name: user.nombre, 
             email: user.email,
             role: primaryRole,
@@ -95,7 +87,8 @@ export const authOptions: NextAuthOptions = {
           const rs = await query({ sql: "SELECT id FROM usuarios WHERE email = ?", args: [profile.email] });
 
           if (rs.rows.length > 0) {
-            user.id = (rs.rows[0] as unknown as AppUser).id;
+            // El ID de la base de datos es numérico, se convierte a string
+            user.id = String((rs.rows[0] as unknown as { id: number }).id);
             return true;
           }
 
@@ -108,11 +101,13 @@ export const authOptions: NextAuthOptions = {
 
           if (insertRs.rowsAffected === 1 && insertRs.lastInsertRowid) {
             const newUserId = Number(insertRs.lastInsertRowid);
-            user.id = newUserId;
+            // El ID del nuevo usuario se convierte a string para asignarlo al objeto user
+            user.id = String(newUserId);
             
             const roleRs = await query({sql: "SELECT id FROM roles WHERE nombre_rol = 'usuario_estandar' LIMIT 1"});
-            if (roleRs.rows.length > 0) {
-                const standardRoleId = (roleRs.rows[0] as unknown as RoleId).id;
+            if (roleRs.rows.length > 0)
+ {
+                const standardRoleId = (roleRs.rows[0] as unknown as { id: number }).id;
                 await query({
                   sql: "INSERT INTO usuario_roles (usuario_id, rol_id) VALUES (?, ?)",
                   args: [newUserId, standardRoleId]
@@ -132,7 +127,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger }) {
       // Si es un inicio de sesión, asignamos el ID del usuario al token
       if (user) {
-        token.id = typeof user.id === "string" ? Number(user.id) : user.id;
+        token.id = String(user.id); // Asegurar que el ID siempre sea string
         token.role = user.role;
         token.roles = user.roles;
       }
@@ -160,11 +155,11 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (token?.id) {
-        session.user.id = token.id;
+        // El tipo de session.user.id ya es `string` gracias a `next-auth.d.ts`
+        session.user.id = token.id; 
         session.user.roles = token.roles;
         session.user.role = token.role;
         session.user.name = token.name;
-        // Expose the JWT token for mobile applications
         session.accessToken = token as any;
       }
       return session;
