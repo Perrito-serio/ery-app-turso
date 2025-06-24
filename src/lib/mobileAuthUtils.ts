@@ -1,6 +1,5 @@
-// src/lib/mobileAuthUtils.ts
+import { getToken } from "next-auth/jwt";
 import { NextRequest } from "next/server";
-import jwt from 'jsonwebtoken'; // ¡Importa jsonwebtoken!
 
 interface AuthenticatedUser {
   id: string;
@@ -32,57 +31,42 @@ export async function getAuthenticatedUser(
   request: NextRequest
 ): Promise<AuthResponse> {
   try {
-    // 1. Extraer el token de la cabecera 'Authorization'
-    const authHeader = request.headers.get('Authorization');
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       return {
         success: false,
-        error: "No se encontró el token de autenticación.",
+        error: "No authentication token found",
         status: 401,
       };
     }
 
-    const token = authHeader.substring(7); // Quita el prefijo "Bearer "
-
-    // 2. Verificar el token usando jsonwebtoken y el mismo secret
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!);
-
-    const tokenPayload = decoded as AuthenticatedUser;
-
-    if (!tokenPayload.id) {
+    if (!token.id) {
       return {
         success: false,
-        error: "Token inválido: falta el ID del usuario.",
+        error: "Invalid token: missing user ID",
         status: 401,
       };
     }
-    
-    // 3. Devolver los datos del usuario si el token es válido
+
     return {
         success: true,
         user: {
-          id: tokenPayload.id,
-          role: tokenPayload.role,
-          roles: tokenPayload.roles,
-          email: tokenPayload.email,
-          name: tokenPayload.name,
+          id: token.id as string,
+          role: token.role as string,
+          roles: token.roles as string[],
+          email: token.email as string,
+          name: token.name as string,
         },
       };
-
   } catch (error) {
     console.error("Authentication error:", error);
-    // Manejar errores específicos de JWT (expirado, inválido)
-    if (error instanceof jwt.TokenExpiredError) {
-        return { success: false, error: "Token expirado.", status: 401 };
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-        return { success: false, error: "Token inválido.", status: 401 };
-    }
-    
     return {
       success: false,
-      error: "Fallo en la autenticación.",
+      error: "Authentication failed",
       status: 500,
     };
   }
@@ -98,10 +82,10 @@ export function requireRoles(
   user: AuthenticatedUser,
   requiredRoles: string[]
 ): AuthError | null {
-  if (!user.roles || !requiredRoles.some(role => user.roles!.includes(role))) {
+  if (!requiredRoles.includes(user.role)) {
     return {
       success: false,
-      error: `Acceso denegado. Rol requerido: ${requiredRoles.join(", ")}`,
+      error: `Access denied. Required roles: ${requiredRoles.join(", ")}`,
       status: 403,
     };
   }
