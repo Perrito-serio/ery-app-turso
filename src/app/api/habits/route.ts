@@ -1,11 +1,14 @@
 // src/app/api/habits/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
 
-// Esquema de Zod (sin cambios)
+// --- PASO 1: Importar AMBOS validadores de autenticación ---
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+
+// El resto del código (esquemas, interfaces) permanece igual
 const createHabitSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido.").max(255),
   descripcion: z.string().optional().nullable(),
@@ -23,7 +26,6 @@ const createHabitSchema = z.object({
     path: ["meta_objetivo"],
 });
 
-// --- Interfaces (limpiadas de dependencias de mysql2) ---
 interface Habit extends Row {
   id: number;
   usuario_id: string;
@@ -31,17 +33,29 @@ interface Habit extends Row {
   descripcion: string | null;
   tipo: 'SI_NO' | 'MEDIBLE_NUMERICO' | 'MAL_HABITO';
   meta_objetivo: number | null;
-  fecha_creacion: string; // SQLite devuelve fechas como strings
+  fecha_creacion: string;
 }
 
 // --- GET /api/habits ---
 export async function GET(request: NextRequest) {
-  const authResult = await getAuthenticatedUser(request);
+  // --- PASO 2: Implementar la lógica de autenticación DUAL ---
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
+  }
+
   if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(authResult)
+      : createWebAuthError(authResult);
+    return errorResponse;
   }
 
   const userId = authResult.user.id;
+  // --- FIN DE CAMBIOS DE AUTENTICACIÓN ---
+
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
   }
@@ -62,14 +76,25 @@ export async function GET(request: NextRequest) {
   }
 }
 
-
 // --- POST /api/habits ---
 export async function POST(request: NextRequest) {
-  const authResult = await getAuthenticatedUser(request);
-  if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+  // --- PASO 2 (repetido): Implementar la lógica de autenticación DUAL ---
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
   }
+
+  if (!authResult.success) {
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(authResult)
+      : createWebAuthError(authResult);
+    return errorResponse;
+  }
+  
   const userId = authResult.user.id;
+  // --- FIN DE CAMBIOS DE AUTENTICACIÓN ---
 
   if (!userId) {
     return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
@@ -99,7 +124,6 @@ export async function POST(request: NextRequest) {
     if (result.rowsAffected === 1 && result.lastInsertRowid) {
       const newHabitId = Number(result.lastInsertRowid);
       
-      // Obtenemos el hábito recién creado para devolverlo completo
       const newHabitRs = await query({
         sql: "SELECT * FROM habitos WHERE id = ?",
         args: [newHabitId]
