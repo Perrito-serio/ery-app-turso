@@ -1,9 +1,13 @@
 // src/app/api/activity-log/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
+
+// --- PASO 1: Importar AMBOS validadores de autenticación ---
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+
 
 // Esquema para validar los parámetros de entrada (sin cambios)
 const schema = z.object({
@@ -24,10 +28,24 @@ interface DailyActivity {
 }
 
 export async function GET(request: NextRequest) {
-    const authResult = await getAuthenticatedUser(request);
-    if (!authResult.success) {
-        return createAuthErrorResponse(authResult);
+    // --- PASO 2: Implementar la lógica de autenticación DUAL ---
+    let authResult;
+    if (request.headers.has('Authorization')) {
+      // Si la cabecera existe, es una petición de API móvil (Flutter)
+      authResult = await verifyApiToken(request);
+    } else {
+      // Si no, es una petición web con cookie de sesión
+      authResult = await getAuthenticatedUser(request);
     }
+
+    // Si la autenticación falla, por cualquier método...
+    if (!authResult.success) {
+      const errorResponse = request.headers.has('Authorization')
+        ? createApiTokenError(authResult)
+        : createWebAuthError(authResult);
+      return errorResponse;
+    }
+    // --- FIN DE LOS CAMBIOS DE AUTENTICACIÓN ---
     
     const userId = authResult.user.id;
 
@@ -48,8 +66,6 @@ export async function GET(request: NextRequest) {
     const endDateStr = `${year}-${String(month).padStart(2, '0')}-${endDate}`;
 
     try {
-        // 1. CORRECCIÓN EN LA CONSULTA SQL
-        // La lógica de `SUM` para `completados` ahora incluye los hábitos medibles.
         const activityRs = await query({
             sql: `
                 SELECT
