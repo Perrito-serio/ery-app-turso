@@ -3,28 +3,22 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react'; // 1. Importar useSession de NextAuth
+import { useSession } from 'next-auth/react';
 import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
 
 export default function DashboardPage() { 
-  // 2. Usar useSession en lugar de useAuth
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // El estado 'status' puede ser "loading", "authenticated", o "unauthenticated"
   const isLoading = status === 'loading';
   const user = session?.user;
 
-  // 3. Adaptar el useEffect para que funcione con el estado de NextAuth
   useEffect(() => {
-    // Si la sesión ha terminado de cargar y no está autenticada, redirigir a login
     if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [status, router]);
-
-  // 4. Adaptar la lógica de renderizado condicional
 
   if (isLoading) {
     return (
@@ -40,8 +34,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Si después de cargar, el usuario no está autenticado, useEffect lo redirigirá.
-  // Mientras tanto, podemos mostrar un mensaje.
   if (!user) {
     return (
       <MainLayout pageTitle="Acceso no Autorizado">
@@ -52,8 +44,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Verificar si el usuario tiene el rol de administrador
-  // Accedemos a los roles desde session.user.roles, que hemos configurado en el callback de NextAuth
   const hasAdminRole = user.roles?.includes('administrador');
 
   if (!hasAdminRole) {
@@ -72,7 +62,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Si el usuario está autenticado Y es administrador, mostrar el contenido del Dashboard
   return (
     <MainLayout pageTitle="Dashboard de Administración">
       <div className="text-center mb-8">
@@ -82,16 +71,23 @@ export default function DashboardPage() {
         </p>
       </div>
       <div className="w-full bg-gray-800 p-6 rounded-lg shadow-xl">
-        {/* ... (Contenido del dashboard como lo teníamos antes) ... */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-700 p-4 rounded-md shadow">
+        {/* --- MODIFICACIÓN ---: Contenido actualizado con enlace a logros */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md hover:bg-gray-600 transition-colors">
               <h3 className="text-lg font-medium text-indigo-400 mb-2">Gestión de Usuarios</h3>
               <p className="text-gray-300">
-                Ver, editar y gestionar cuentas de usuario.
+                Ver, editar, cambiar roles y gestionar cuentas de usuario.
               </p>
-              <Link href="/admin/users" className="text-indigo-400 hover:underline mt-2 inline-block">Ir a Gestión de Usuarios</Link>
+              <Link href="/admin/users" className="text-indigo-400 hover:underline mt-4 inline-block font-semibold">Ir a Gestión de Usuarios &rarr;</Link>
             </div>
-            <div className="bg-gray-700 p-4 rounded-md shadow">
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md hover:bg-gray-600 transition-colors">
+              <h3 className="text-lg font-medium text-yellow-400 mb-2">Gestión de Logros</h3>
+              <p className="text-gray-300">
+                Crear y editar las insignias y condiciones de desbloqueo.
+              </p>
+              <Link href="/admin/achievements" className="text-yellow-400 hover:underline mt-4 inline-block font-semibold">Ir a Gestión de Logros &rarr;</Link>
+            </div>
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md opacity-50">
               <h3 className="text-lg font-medium text-green-400 mb-2">Estadísticas Globales</h3>
               <p className="text-gray-300">
                 Visualizar estadísticas de uso de la aplicación. (Próximamente)

@@ -14,7 +14,6 @@ export default function ModeratePage() {
   const isLoading = status === 'loading';
   const user = session?.user;
 
-  // --- MODIFICACIÓN ---: Roles que tienen acceso a cualquier panel de moderación/admin.
   const allowedRoles = ['administrador', 'moderador_contenido'];
 
   useEffect(() => {
@@ -64,21 +63,30 @@ export default function ModeratePage() {
     );
   }
 
-  // --- MODIFICACIÓN ---: Contenido actualizado para ser un panel útil.
   return (
     <MainLayout pageTitle="Panel de Moderación">
       <div className="bg-gray-800 p-6 rounded-lg shadow-xl">
         <h2 className="text-2xl font-semibold mb-2 text-white">¡Bienvenido, Moderador!</h2>
         <p className="text-gray-400 mb-6">Desde aquí puedes acceder a las herramientas para mantener la comunidad segura y ordenada.</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* --- MODIFICACIÓN ---: Contenido actualizado con enlace a logros */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-gray-700 p-6 rounded-lg shadow-md hover:bg-gray-600 transition-colors">
               <h3 className="text-lg font-medium text-indigo-400 mb-2">Gestión de Usuarios</h3>
               <p className="text-gray-300">
-                Ver, suspender o banear cuentas de usuarios estándar que infrinjan las normas.
+                Ver, suspender o banear cuentas de usuarios estándar.
               </p>
               <Link href="/control/users" className="text-indigo-400 hover:underline mt-4 inline-block font-semibold">
                 Ir a Gestión de Usuarios &rarr;
+              </Link>
+            </div>
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md hover:bg-gray-600 transition-colors">
+              <h3 className="text-lg font-medium text-yellow-400 mb-2">Gestión de Logros</h3>
+              <p className="text-gray-300">
+                Crear y editar las insignias que los usuarios pueden ganar.
+              </p>
+              <Link href="/admin/achievements" className="text-yellow-400 hover:underline mt-4 inline-block font-semibold">
+                Ir a Gestión de Logros &rarr;
               </Link>
             </div>
             <div className="bg-gray-700 p-6 rounded-lg shadow-md opacity-50">
