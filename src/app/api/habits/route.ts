@@ -5,16 +5,16 @@ import { z } from 'zod';
 import { Row } from '@libsql/client';
 import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
 import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+// --- MODIFICACIÓN ---: Importar la función de verificación de logros.
+import { checkAndAwardAchievements } from '@/lib/achievements';
 
-// Esquema de Zod actualizado para la creación de hábitos.
-// Este esquema es el correcto y coincide con la lógica que queremos implementar.
+// Esquema de Zod (sin cambios)
 const createHabitSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido.").max(255),
   descripcion: z.string().optional().nullable(),
   tipo: z.enum(['SI_NO', 'MEDIBLE_NUMERICO', 'MAL_HABITO']),
   meta_objetivo: z.number().optional().nullable(),
 }).refine(data => {
-    // Si el tipo es medible, la meta es obligatoria.
     if (data.tipo === 'MEDIBLE_NUMERICO') {
         return data.meta_objetivo != null && data.meta_objetivo > 0;
     }
@@ -34,7 +34,7 @@ interface Habit extends Row {
   fecha_creacion: string;
 }
 
-// GET /api/habits (Sin cambios funcionales, pero se beneficia de la nueva estructura)
+// GET /api/habits (sin cambios)
 export async function GET(request: NextRequest) {
   let authResult;
   if (request.headers.has('Authorization')) {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/habits (Lógica de inserción CORREGIDA)
+// POST /api/habits (modificado para activar logros)
 export async function POST(request: NextRequest) {
   let authResult;
   if (request.headers.has('Authorization')) {
@@ -92,7 +92,6 @@ export async function POST(request: NextRequest) {
   const { nombre, descripcion, tipo, meta_objetivo } = validation.data;
 
   try {
-    // La inserción ahora es directa y consistente con el nuevo esquema unificado.
     const result = await query({
         sql: `
             INSERT INTO habitos (usuario_id, nombre, descripcion, tipo, meta_objetivo)
@@ -103,11 +102,17 @@ export async function POST(request: NextRequest) {
 
     if (result.rowsAffected === 1 && result.lastInsertRowid) {
       const newHabitId = Number(result.lastInsertRowid);
+      
+      // --- MODIFICACIÓN ---: Llamar a la función de verificación de logros.
+      // Se ejecuta en segundo plano y no bloquea la respuesta al usuario.
+      await checkAndAwardAchievements(userId, 'PRIMER_HABITO_CREADO');
+
       const newHabitRs = await query({
         sql: "SELECT * FROM habitos WHERE id = ?",
         args: [newHabitId]
       });
       const newHabit = newHabitRs.rows[0];
+      
       return NextResponse.json({ message: "Hábito creado exitosamente.", habit: newHabit }, { status: 201 });
     }
 
