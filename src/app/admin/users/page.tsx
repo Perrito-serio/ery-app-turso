@@ -29,7 +29,6 @@ const StatusBadge: React.FC<{ user: UserFromApi }> = ({ user }) => {
   return (
     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusStyles[user.estado]}`}>
       {user.estado.charAt(0).toUpperCase() + user.estado.slice(1)}
-      {user.estado === 'suspendido' && user.suspension_fin && ` (hasta ${new Date(user.suspension_fin).toLocaleDateString()})`}
     </span>
   );
 };
@@ -83,6 +82,7 @@ export default function AdminUsersPage() {
   // Estados para la interactividad
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState<{ key: keyof UserFromApi; direction: 'ascending' | 'descending' } | null>({ key: 'id', direction: 'ascending' });
   const [currentPage, setCurrentPage] = useState(1);
   const USERS_PER_PAGE = 10;
@@ -111,11 +111,10 @@ export default function AdminUsersPage() {
     } else if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated') {
-        setPageLoading(false); // No es admin, pero está logueado
+        setPageLoading(false);
     }
   }, [status, session, router, fetchUsers]);
 
-  // Lógica de filtrado y ordenamiento
   const processedUsers = useMemo(() => {
     let filtered = [...allUsers];
     if (searchTerm) {
@@ -123,12 +122,17 @@ export default function AdminUsersPage() {
       filtered = filtered.filter(user =>
         user.nombre.toLowerCase().includes(lowercasedFilter) ||
         (user.apellido && user.apellido.toLowerCase().includes(lowercasedFilter)) ||
-        user.email.toLowerCase().includes(lowercasedFilter)
+        user.email.toLowerCase().includes(lowercasedFilter) ||
+        user.id.toString().includes(lowercasedFilter)
       );
     }
     if (statusFilter !== 'all') {
       filtered = filtered.filter(user => user.estado === statusFilter);
     }
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(user => user.roles && user.roles.includes(roleFilter));
+    }
+
     if (sortConfig !== null) {
       filtered.sort((a, b) => {
         const aValue = a[sortConfig.key] ?? '';
@@ -139,7 +143,7 @@ export default function AdminUsersPage() {
       });
     }
     return filtered;
-  }, [allUsers, searchTerm, statusFilter, sortConfig]);
+  }, [allUsers, searchTerm, statusFilter, roleFilter, sortConfig]);
 
   const requestSort = (key: keyof UserFromApi) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -150,7 +154,6 @@ export default function AdminUsersPage() {
     setCurrentPage(1);
   };
 
-  // Lógica de paginación
   const totalPages = Math.ceil(processedUsers.length / USERS_PER_PAGE);
   const paginatedUsers = processedUsers.slice((currentPage - 1) * USERS_PER_PAGE, currentPage * USERS_PER_PAGE);
   
@@ -158,7 +161,6 @@ export default function AdminUsersPage() {
     if (currentPage > totalPages && totalPages > 0) setCurrentPage(1);
   }, [currentPage, totalPages]);
 
-  // Manejadores de acciones (sin cambios, pero se podrían mejorar con notificaciones en vez de alerts)
   const handleUpdateStatus = async (userId: number, estado: 'activo' | 'suspendido' | 'baneado', suspension_fin: string | null = null) => {
     setActionMenuOpen(null);
     setUserToSuspend(null);
@@ -170,7 +172,7 @@ export default function AdminUsersPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Error al actualizar el estado.');
-      fetchUsers(); // Recargar todos los datos para consistencia
+      fetchUsers();
       alert(data.message);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Ocurrió un error desconocido.');
@@ -185,7 +187,7 @@ export default function AdminUsersPage() {
       const response = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Error al eliminar el usuario.');
-      fetchUsers(); // Recargar
+      fetchUsers();
       alert(data.message);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Ocurrió un error desconocido.');
@@ -216,13 +218,19 @@ export default function AdminUsersPage() {
         <h2 className="text-2xl font-semibold mb-6 text-white">Administrar Usuarios</h2>
         
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <input type="text" placeholder="Buscar por nombre o email..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full sm:w-1/2 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md" />
-          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} className="w-full sm:w-auto px-3 py-2 bg-gray-700 border border-gray-600 rounded-md">
+          <input type="text" placeholder="Buscar por nombre, email o ID..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full sm:w-1/2 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white" />
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} className="w-full sm:w-auto px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white">
             <option value="all">Todos los estados</option>
             <option value="activo">Activo</option>
             <option value="suspendido">Suspendido</option>
             <option value="baneado">Baneado</option>
             <option value="inactivo">Inactivo</option>
+          </select>
+          <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }} className="w-full sm:w-auto px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white">
+            <option value="all">Todos los roles</option>
+            <option value="administrador">Administrador</option>
+            <option value="moderador_contenido">Moderador</option>
+            <option value="usuario_estandar">Usuario Estándar</option>
           </select>
         </div>
 
@@ -232,6 +240,7 @@ export default function AdminUsersPage() {
           <table className="min-w-full bg-gray-700 rounded-md">
             <thead className="bg-gray-600">
               <tr>
+                <SortableHeader title="ID" sortKey="id" sortConfig={sortConfig} requestSort={requestSort} />
                 <SortableHeader title="Nombre" sortKey="nombre" sortConfig={sortConfig} requestSort={requestSort} />
                 <SortableHeader title="Email" sortKey="email" sortConfig={sortConfig} requestSort={requestSort} />
                 <th className="px-3 py-3 text-left text-xs sm:text-sm font-medium text-gray-300 uppercase">Estado</th>
@@ -240,31 +249,38 @@ export default function AdminUsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-600">
-              {paginatedUsers.map(userItem => (
-                <tr key={userItem.id} className="hover:bg-gray-600/50">
-                  <td className="px-3 py-4 text-sm"><Highlight text={`${userItem.nombre} ${userItem.apellido || ''}`} highlight={searchTerm} /></td>
-                  <td className="px-3 py-4 text-sm"><Highlight text={userItem.email} highlight={searchTerm} /></td>
-                  <td className="px-3 py-4 text-sm"><StatusBadge user={userItem} /></td>
-                  <td className="px-3 py-4 text-sm text-gray-400">{userItem.roles || 'N/A'}</td>
-                  <td className="px-3 py-4 text-sm text-center">
-                    <div className="relative inline-block text-left" ref={actionMenuOpen === userItem.id ? menuRef : null}>
-                      <button onClick={() => setActionMenuOpen(actionMenuOpen === userItem.id ? null : userItem.id)} className="px-3 py-1 text-xs rounded bg-gray-500 hover:bg-gray-400 text-white">Acciones</button>
-                      {actionMenuOpen === userItem.id && (
-                        <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 z-10">
-                          <div className="py-1" role="menu" aria-orientation="vertical">
-                            <Link href={`/admin/users/${userItem.id}/edit`} className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Editar</Link>
-                            {userItem.estado !== 'suspendido' && <button onClick={() => setUserToSuspend(userItem)} className="block w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-gray-700">Suspender</button>}
-                            {userItem.estado !== 'baneado' && <button onClick={() => handleUpdateStatus(userItem.id, 'baneado')} className="block w-full text-left px-4 py-2 text-sm text-orange-500 hover:bg-gray-700">Banear</button>}
-                            {userItem.estado !== 'activo' && <button onClick={() => handleUpdateStatus(userItem.id, 'activo')} className="block w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-gray-700">Reactivar</button>}
-                            <div className="border-t border-gray-700 my-1"></div>
-                            <button onClick={() => setUserToDelete(userItem)} className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700">Eliminar</button>
+              {paginatedUsers.length > 0 ? (
+                paginatedUsers.map(userItem => (
+                  <tr key={userItem.id} className="hover:bg-gray-600/50">
+                    <td className="px-3 py-4 text-sm text-gray-400"><Highlight text={String(userItem.id)} highlight={searchTerm} /></td>
+                    <td className="px-3 py-4 text-sm"><Highlight text={`${userItem.nombre} ${userItem.apellido || ''}`} highlight={searchTerm} /></td>
+                    <td className="px-3 py-4 text-sm"><Highlight text={userItem.email} highlight={searchTerm} /></td>
+                    <td className="px-3 py-4 text-sm"><StatusBadge user={userItem} /></td>
+                    <td className="px-3 py-4 text-sm text-gray-400">{userItem.roles || 'N/A'}</td>
+                    <td className="px-3 py-4 text-sm text-center">
+                      <div className="relative inline-block text-left" ref={actionMenuOpen === userItem.id ? menuRef : null}>
+                        <button onClick={() => setActionMenuOpen(actionMenuOpen === userItem.id ? null : userItem.id)} className="px-3 py-1 text-xs rounded bg-gray-500 hover:bg-gray-400 text-white">Acciones</button>
+                        {actionMenuOpen === userItem.id && (
+                          <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-gray-900 ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="py-1" role="menu" aria-orientation="vertical">
+                              <Link href={`/admin/users/${userItem.id}/edit`} className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Editar</Link>
+                              {userItem.estado !== 'suspendido' && <button onClick={() => setUserToSuspend(userItem)} className="block w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-gray-700">Suspender</button>}
+                              {userItem.estado !== 'baneado' && <button onClick={() => handleUpdateStatus(userItem.id, 'baneado')} className="block w-full text-left px-4 py-2 text-sm text-orange-500 hover:bg-gray-700">Banear</button>}
+                              {userItem.estado !== 'activo' && <button onClick={() => handleUpdateStatus(userItem.id, 'activo')} className="block w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-gray-700">Reactivar</button>}
+                              <div className="border-t border-gray-700 my-1"></div>
+                              <button onClick={() => setUserToDelete(userItem)} className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700">Eliminar</button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-3 py-6 text-center text-sm text-gray-400">No se encontraron usuarios con los filtros actuales.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
