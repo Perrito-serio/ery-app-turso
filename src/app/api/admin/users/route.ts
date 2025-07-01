@@ -1,6 +1,7 @@
 // src/app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
+import { verifyApiKey } from '@/lib/apiKeyAuth';
 import { query } from '@/lib/db';
 
 // --- INTERFAZ ACTUALIZADA ---
@@ -17,20 +18,35 @@ interface UserListData {
 }
 
 export async function GET(request: NextRequest) {
-  // Verificar autenticación y autorización
-  const authResult = await getAuthenticatedUser(request);
-  if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
-  }
-  const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
-  if (roleError) {
-    return createAuthErrorResponse(roleError);
-  }
+  let isRequesterAdmin = false;
+  // Un moderador no puede usar API Key, así que por defecto no es admin
+  let requesterRoles: string[] = [];
 
-  const requesterRoles = authResult.user.roles || [authResult.user.role];
-  const isRequesterAdmin = requesterRoles.includes('administrador');
+  // --- Lógica de Autenticación Dual ---
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const apiKeyResult = await verifyApiKey(request);
+    if (!apiKeyResult.success) {
+      return NextResponse.json({ message: apiKeyResult.error }, { status: apiKeyResult.status });
+    }
+    // Si la clave es válida, el solicitante es un sistema con privilegios de administrador
+    isRequesterAdmin = true;
+    console.log('Solicitud de lista de usuarios autenticada con Clave de API.');
 
-  console.log(`Usuario ${authResult.user.email} (Roles: ${requesterRoles.join(', ')}) está solicitando la lista de usuarios.`);
+  } else {
+    // Autenticación basada en sesión para usuarios web
+    const authResult = await getAuthenticatedUser(request);
+    if (!authResult.success) {
+      return createAuthErrorResponse(authResult);
+    }
+    const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
+    if (roleError) {
+      return createAuthErrorResponse(roleError);
+    }
+    requesterRoles = authResult.user.roles || [authResult.user.role];
+    isRequesterAdmin = requesterRoles.includes('administrador');
+    console.log(`Usuario ${authResult.user.email} (Roles: ${requesterRoles.join(', ')}) está solicitando la lista de usuarios.`);
+  }
 
   try {
     let usersQuery: string;
