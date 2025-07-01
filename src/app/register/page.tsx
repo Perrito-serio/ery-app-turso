@@ -5,7 +5,7 @@ import React, { useState, ChangeEvent, FormEvent, useCallback, useEffect } from 
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 
-// --- MODIFICACIÓN ---: Interfaces actualizadas para el estado del formulario y los datos de la API.
+// --- Interfaces ---
 interface RegisterFormData {
   nombre: string;
   apellido: string;
@@ -15,8 +15,8 @@ interface RegisterFormData {
   fecha_nacimiento: string;
   telefono: string;
   direccion: string;
-  pais_id: string; // Se usará para el ID del país seleccionado
-  ciudad_id: string; // Se usará para el ID de la ciudad seleccionada
+  pais_id: string;
+  ciudad_id: string;
 }
 
 interface Country {
@@ -31,21 +31,21 @@ interface City {
 
 interface FormErrors {
   nombre?: string | string[];
-  apellido?: string | string[];
   email?: string | string[];
   password?: string | string[];
   confirmPassword?: string | string[];
   api?: string;
-  // ... otros campos si se requiere validación
-  fecha_nacimiento?: string | string[];
-  telefono?: string | string[];
-  direccion?: string | string[];
 }
 
-// --- Componente FormField (modificado para aceptar `disabled`) ---
+// --- CORRECCIÓN ---: Se ha corregido la sintaxis de los componentes de los íconos.
+const EyeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+const EyeSlashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L6.228 6.228" /></svg>;
+
+
+// --- Componente FormField (CORREGIDO) ---
 interface FormFieldProps {
   label: string;
-  name: keyof RegisterFormData | 'confirmPassword' | 'pais' | 'ciudad'; // Nombres antiguos para compatibilidad
+  name: keyof RegisterFormData | 'confirmPassword';
   type?: string;
   value: string;
   error?: string | string[];
@@ -54,13 +54,14 @@ interface FormFieldProps {
   disabled?: boolean;
 }
 
-const FormField: React.FC<FormFieldProps> = ({ label, name, value, error, onChange, children, disabled = false }) => (
+const FormField: React.FC<FormFieldProps> = ({ label, name, type = 'text', value, error, onChange, children, disabled = false }) => (
   <div className="mb-4">
     <label htmlFor={name} className="block text-sm font-medium text-gray-300 mb-1">{label}</label>
-    <div className={`${disabled ? 'opacity-50' : ''}`}>
+    <div className={`relative ${disabled ? 'opacity-50' : ''}`}>
         {children || (
         <input
-            type="text" id={name} name={name} value={value} onChange={onChange} disabled={disabled}
+            type={type} 
+            id={name} name={name} value={value} onChange={onChange} disabled={disabled}
             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
         />
         )}
@@ -69,61 +70,45 @@ const FormField: React.FC<FormFieldProps> = ({ label, name, value, error, onChan
   </div>
 );
 
-// --- Componente Principal (Actualizado) ---
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState<RegisterFormData>({
-    nombre: '',
-    apellido: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    fecha_nacimiento: '',
-    telefono: '',
-    direccion: '',
-    pais_id: '', // Valor inicial vacío
-    ciudad_id: '', // Valor inicial vacío
+    nombre: '', apellido: '', email: '', password: '', confirmPassword: '',
+    fecha_nacimiento: '', telefono: '', direccion: '', pais_id: '', ciudad_id: '',
   });
 
-  // --- MODIFICACIÓN ---: Nuevos estados para almacenar países y ciudades.
   const [countries, setCountries] = useState<Country[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [isLoadingCities, setIsLoadingCities] = useState(false);
-
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiMessage, setApiMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Cargar la lista de países al montar el componente.
   useEffect(() => {
     const fetchCountries = async () => {
       try {
         const response = await fetch('/api/locations/countries');
         const data = await response.json();
-        if (response.ok) {
-          setCountries(data.countries || []);
-        }
-      } catch (error) {
-        console.error("Error fetching countries:", error);
-      }
+        if (response.ok) setCountries(data.countries || []);
+      } catch (error) { console.error("Error fetching countries:", error); }
     };
     fetchCountries();
   }, []);
 
-  // Cargar las ciudades cuando se selecciona un país.
   useEffect(() => {
     const fetchCities = async () => {
       if (!formData.pais_id) {
         setCities([]);
-        setFormData(prev => ({ ...prev, ciudad_id: '' })); // Resetear ciudad si el país cambia
+        setFormData(prev => ({ ...prev, ciudad_id: '' }));
         return;
       }
       setIsLoadingCities(true);
       try {
         const response = await fetch(`/api/locations/cities?countryId=${formData.pais_id}`);
         const data = await response.json();
-        if (response.ok) {
-          setCities(data.cities || []);
-        }
+        if (response.ok) setCities(data.cities || []);
       } catch (error) {
         console.error("Error fetching cities:", error);
         setCities([]);
@@ -143,7 +128,6 @@ export default function RegisterPage() {
     setApiMessage(null);
     setErrors({});
     
-    // Validación local para los campos obligatorios.
     const newErrors: FormErrors = {};
     if (!formData.nombre.trim()) newErrors.nombre = "El nombre es requerido.";
     if (!formData.email.trim()) newErrors.email = "El email es requerido.";
@@ -155,18 +139,13 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-
-    // Preparar los datos para enviar a la API, incluyendo los nuevos IDs.
     const dataToSend: { [key: string]: any } = {
-        nombre: formData.nombre,
-        email: formData.email,
-        password: formData.password,
+        nombre: formData.nombre, email: formData.email, password: formData.password,
     };
     if (formData.apellido) dataToSend.apellido = formData.apellido;
     if (formData.fecha_nacimiento) dataToSend.fecha_nacimiento = formData.fecha_nacimiento;
     if (formData.telefono) dataToSend.telefono = formData.telefono;
     if (formData.direccion) dataToSend.direccion = formData.direccion;
-    // Convertir a número solo si hay un valor seleccionado
     if (formData.pais_id) dataToSend.pais_id = parseInt(formData.pais_id, 10);
     if (formData.ciudad_id) dataToSend.ciudad_id = parseInt(formData.ciudad_id, 10);
 
@@ -176,9 +155,7 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),
       });
-      
       const data = await response.json();
-
       if (response.ok) {
         setApiMessage({ type: 'success', text: data.message || '¡Registro exitoso!' });
         setFormData({
@@ -220,12 +197,23 @@ export default function RegisterPage() {
                 <FormField label="Apellido" name="apellido" value={formData.apellido} onChange={handleChange} />
             </div>
             <FormField label="Correo Electrónico *" name="email" type="email" value={formData.email} error={errors.email} onChange={handleChange} />
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-                <FormField label="Contraseña *" name="password" type="password" value={formData.password} error={errors.password} onChange={handleChange} />
-                <FormField label="Confirmar Contraseña *" name="confirmPassword" type="password" value={formData.confirmPassword} error={errors.confirmPassword} onChange={handleChange} />
+                <div className="relative">
+                    <FormField label="Contraseña *" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} error={errors.password} onChange={handleChange} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-gray-400 hover:text-white">
+                        {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
+                    </button>
+                </div>
+                <div className="relative">
+                    <FormField label="Confirmar Contraseña *" name="confirmPassword" type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} error={errors.confirmPassword} onChange={handleChange} />
+                </div>
             </div>
+             <p className="text-xs text-gray-500 -mt-2">Mínimo 8 caracteres.</p>
+
             <hr className="border-gray-600 my-6" />
             <p className="text-sm text-gray-400">Información Adicional (Opcional)</p>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                 <FormField label="Fecha de Nacimiento" name="fecha_nacimiento" type="date" value={formData.fecha_nacimiento} onChange={handleChange} />
                 <FormField label="Teléfono" name="telefono" type="tel" value={formData.telefono} onChange={handleChange} />
@@ -236,17 +224,13 @@ export default function RegisterPage() {
                 <FormField label="País" name="pais_id" value={formData.pais_id} onChange={handleChange}>
                     <select id="pais_id" name="pais_id" value={formData.pais_id} onChange={handleChange} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Selecciona un país...</option>
-                        {countries.map(country => (
-                            <option key={country.id} value={String(country.id)}>{country.nombre}</option>
-                        ))}
+                        {countries.map(country => (<option key={country.id} value={String(country.id)}>{country.nombre}</option>))}
                     </select>
                 </FormField>
                 <FormField label="Ciudad" name="ciudad_id" value={formData.ciudad_id} onChange={handleChange} disabled={!formData.pais_id || isLoadingCities}>
                     <select id="ciudad_id" name="ciudad_id" value={formData.ciudad_id} onChange={handleChange} disabled={!formData.pais_id || isLoadingCities} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
                         <option value="">{isLoadingCities ? 'Cargando...' : 'Selecciona una ciudad...'}</option>
-                        {cities.map(city => (
-                            <option key={city.id} value={String(city.id)}>{city.nombre}</option>
-                        ))}
+                        {cities.map(city => (<option key={city.id} value={String(city.id)}>{city.nombre}</option>))}
                     </select>
                 </FormField>
             </div>
