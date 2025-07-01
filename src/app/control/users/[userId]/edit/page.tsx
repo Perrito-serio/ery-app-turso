@@ -8,15 +8,8 @@ import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
 import { z } from 'zod';
 
-// Esquema de validación con Zod para los datos del formulario
-const editUserSchema = z.object({
-  nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres.").regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/, "El nombre solo puede contener letras y espacios."),
-  apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/, "El apellido solo puede contener letras y espacios.").optional(),
-  email: z.string().email("Formato de correo electrónico inválido."),
-  password: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres.").optional().or(z.literal('')),
-});
-
-// Interfaces
+// --- INTERFAZ SIMPLIFICADA ---
+// Solo necesitamos los datos que se van a mostrar y editar.
 interface UserToEdit {
   id: number;
   nombre: string;
@@ -24,6 +17,15 @@ interface UserToEdit {
   email: string;
 }
 type FormDataType = Omit<UserToEdit, 'id'> & { password?: string };
+
+// --- Esquema de validación (sin cambios) ---
+const editUserSchema = z.object({
+  nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres.").regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/, "El nombre solo puede contener letras y espacios."),
+  apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/, "El apellido solo puede contener letras y espacios.").optional(),
+  email: z.string().email("Formato de correo electrónico inválido."),
+  password: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres.").optional().or(z.literal('')),
+});
+
 
 export default function EditUserDetailsPage() {
   const { data: session, status } = useSession();
@@ -39,21 +41,19 @@ export default function EditUserDetailsPage() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    if (status === 'unauthenticated') {
-      router.push('/login');
-      return;
-    }
 
     const canAccess = session?.user?.roles?.includes('administrador') || session?.user?.roles?.includes('moderador_contenido');
     if (!canAccess) {
-      setPageLoading(false);
+      router.push('/login');
       return;
     }
 
     const fetchData = async () => {
       setPageLoading(true);
       try {
-        const response = await fetch(`/api/users/${userId}/details`);
+        // --- LLAMADA A LA API CORREGIDA ---
+        // Usamos el endpoint que devuelve los detalles del usuario.
+        const response = await fetch(`/api/admin/users/${userId}/details`);
         if (!response.ok) {
           const errData = await response.json();
           throw new Error(errData.message || "No se pudo cargar la información del usuario.");
@@ -86,17 +86,14 @@ export default function EditUserDetailsPage() {
     setFormError(null);
     setFormSuccess(null);
 
-    // Validar con Zod antes de enviar
     const validation = editUserSchema.safeParse(formData);
     if (!validation.success) {
-      // Unir todos los mensajes de error en uno solo para mostrarlo
       const errorMsg = Object.values(validation.error.flatten().fieldErrors).flat().join(' ');
       setFormError(errorMsg || "Por favor, corrige los errores en el formulario.");
       setIsSubmitting(false);
       return;
     }
     
-    // Solo enviar los campos que tienen un valor para no sobreescribir con vacíos
     const bodyToSend: Partial<FormDataType> = {};
     if (validation.data.nombre) bodyToSend.nombre = validation.data.nombre;
     if (validation.data.apellido !== undefined) bodyToSend.apellido = validation.data.apellido;
@@ -104,7 +101,8 @@ export default function EditUserDetailsPage() {
     if (validation.data.password) bodyToSend.password = validation.data.password;
 
     try {
-      const response = await fetch(`/api/users/${userId}/details`, {
+      // --- LLAMADA A LA API CORREGIDA ---
+      const response = await fetch(`/api/admin/users/${userId}/details`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyToSend),
@@ -114,7 +112,6 @@ export default function EditUserDetailsPage() {
       if (!response.ok) throw new Error(data.message || 'Fallo al actualizar el usuario.');
       
       setFormSuccess(data.message || '¡Usuario actualizado con éxito!');
-      // Limpiar el campo de contraseña después de un guardado exitoso
       setFormData(prev => ({...prev, password: ''}));
 
     } catch (err) {
@@ -138,7 +135,6 @@ export default function EditUserDetailsPage() {
     );
   }
   
-  // Si hubo un error al cargar los datos iniciales
   if (formError && !formData.nombre) {
      return (
       <MainLayout pageTitle="Error">
@@ -151,7 +147,7 @@ export default function EditUserDetailsPage() {
   }
 
   return (
-    <MainLayout pageTitle={`Editar Usuario ID: ${userId}`}>
+    <MainLayout pageTitle={`Editando Usuario ID: ${userId}`}>
       <div className="bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl mx-auto">
         <h2 className="text-2xl font-semibold mb-6 text-white">Editando Datos del Usuario</h2>
         

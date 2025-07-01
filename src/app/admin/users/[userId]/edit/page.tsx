@@ -8,8 +8,7 @@ import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
 import { z } from 'zod';
 
-// --- INTERFACES ACTUALIZADAS ---
-// La interfaz ahora incluye los nuevos campos de estado que devuelve la API
+// --- INTERFACES ---
 interface UserToEdit {
   id: number;
   nombre: string;
@@ -30,7 +29,7 @@ type DetailsFormData = {
   password?: string;
 };
 
-// --- Esquema de validación (sin cambios) ---
+// --- Esquema de validación ---
 const editDetailsSchema = z.object({
   nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres.").regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/, "El nombre solo puede contener letras y espacios."),
   apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/, "El apellido solo puede contener letras y espacios.").optional(),
@@ -45,24 +44,21 @@ export default function AdminEditUserPage() {
   const params = useParams();
   const userId = params.userId as string;
 
-  // --- ESTADOS ACTUALIZADOS ---
+  // --- Estados ---
   const [userToEdit, setUserToEdit] = useState<UserToEdit | null>(null);
   const [availableRoles, setAvailableRoles] = useState<AvailableRole[]>([]);
   const [detailsFormData, setDetailsFormData] = useState<DetailsFormData>({ nombre: '', apellido: '', email: '', password: '' });
-  
-  // CAMBIO: Se usa un estado para un único ID de rol, no un Set
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-
   const [pageLoading, setPageLoading] = useState(true);
   const [detailsSubmitting, setDetailsSubmitting] = useState(false);
   const [rolesSubmitting, setRolesSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-
-  // --- Efecto para obtener todos los datos iniciales ---
+  // --- Obtención de datos ---
   useEffect(() => {
     if (status === 'loading') return;
+    // Solo los administradores pueden acceder a esta página
     if (status === 'unauthenticated' || !session?.user?.roles?.includes('administrador')) {
       router.push('/login');
       return;
@@ -92,7 +88,6 @@ export default function AdminEditUserPage() {
           password: ''
         });
 
-        // CAMBIO: Asignar el primer rol del usuario como el rol seleccionado
         const primaryUserRoleName = userData.user.roles[0];
         const primaryRoleObj = rolesData.roles.find(r => r.nombre_rol === primaryUserRoleName);
         if (primaryRoleObj) {
@@ -113,7 +108,6 @@ export default function AdminEditUserPage() {
     setDetailsFormData({ ...detailsFormData, [e.target.name]: e.target.value });
   };
   
-  // CAMBIO: El manejador de roles ahora solo establece el ID seleccionado
   const handleRoleChange = (roleId: number) => {
     setSelectedRoleId(roleId);
   };
@@ -146,7 +140,7 @@ export default function AdminEditUserPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Fallo al actualizar los datos.');
-      setSuccess(data.message);
+      setSuccess("Datos del usuario actualizados con éxito.");
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar.');
     } finally {
@@ -166,7 +160,6 @@ export default function AdminEditUserPage() {
         return;
     }
 
-    // SOLUCIÓN AL ERROR DE TIPADO 1: Comparar strings con strings
     if (session?.user?.id === userId) {
       const adminRole = availableRoles.find(r => r.nombre_rol === 'administrador');
       if (adminRole && selectedRoleId !== adminRole.id) {
@@ -177,7 +170,6 @@ export default function AdminEditUserPage() {
     }
 
     try {
-      // CAMBIO: Enviar un solo roleId en lugar de un array
       const response = await fetch(`/api/admin/users/${userId}/roles`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -185,7 +177,7 @@ export default function AdminEditUserPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Fallo al actualizar roles.');
-      setSuccess(data.message);
+      setSuccess("Rol del usuario actualizado con éxito.");
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar roles.');
     } finally {
@@ -193,7 +185,7 @@ export default function AdminEditUserPage() {
     }
   };
 
-  // --- Renderizado Condicional ---
+  // --- Renderizado ---
   if (status === 'loading' || pageLoading) {
     return <MainLayout pageTitle="Editar Usuario"><div className="text-center">Cargando...</div></MainLayout>;
   }
@@ -210,10 +202,11 @@ export default function AdminEditUserPage() {
     <MainLayout pageTitle={`Editando Usuario: ${userToEdit.nombre}`}>
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* --- Formulario para Editar Detalles del Usuario (sin cambios en JSX) --- */}
+        {/* Formulario para Editar Detalles del Usuario */}
         <div className="bg-gray-800 p-6 rounded-lg shadow-xl">
           <h2 className="text-2xl font-semibold mb-6 text-white">Editar Datos de <span className="text-indigo-400">{userToEdit.email}</span></h2>
           <form onSubmit={handleDetailsSubmit} className="space-y-4">
+            {/* ... campos del formulario de detalles ... */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="nombre" className="block text-sm font-medium text-gray-300">Nombre</label>
@@ -240,21 +233,21 @@ export default function AdminEditUserPage() {
           </form>
         </div>
 
-        {/* --- Formulario para Gestionar Roles (ACTUALIZADO A RADIO BUTTONS) --- */}
+        {/* --- Formulario para Gestionar Roles (Solo para Administradores) --- */}
         <div className="bg-gray-800 p-6 rounded-lg shadow-xl">
           <h2 className="text-2xl font-semibold mb-6 text-white">Gestionar Rol del Usuario</h2>
           <form onSubmit={handleRolesSubmit}>
             <fieldset>
+              <legend className="sr-only">Roles de usuario</legend>
               <div className="space-y-2">
                 {availableRoles.map(role => (
                   <label key={role.id} className="flex items-center p-3 bg-gray-700 rounded-md hover:bg-gray-600 cursor-pointer">
                     <input
                       type="radio"
-                      name="roleSelection" // El 'name' agrupa los radio buttons
+                      name="roleSelection"
                       className="h-5 w-5 text-indigo-500 bg-gray-600 border-gray-500 focus:ring-indigo-400 focus:ring-offset-gray-800"
                       checked={selectedRoleId === role.id}
                       onChange={() => handleRoleChange(role.id)}
-                      // SOLUCIÓN AL ERROR DE TIPADO 2: Comparar strings con strings
                       disabled={session?.user?.id === String(userToEdit.id) && role.nombre_rol === 'administrador'}
                     />
                     <span className="ml-3 text-sm text-gray-300">{role.nombre_rol}</span>
@@ -270,8 +263,12 @@ export default function AdminEditUserPage() {
           </form>
         </div>
 
-        {error && <div className="mt-4 p-3 bg-red-700 text-white rounded text-center">{error}</div>}
-        {success && <div className="mt-4 p-3 bg-green-700 text-white rounded text-center">{success}</div>}
+        {/* Mensajes de Éxito/Error y Navegación */}
+        {(error || success) && (
+            <div className={`mt-4 p-3 rounded text-center ${error ? 'bg-red-700 text-white' : 'bg-green-700 text-white'}`}>
+                {error || success}
+            </div>
+        )}
         <Link href="/admin/users" className="block text-center mt-4 text-indigo-400 hover:underline">
             Volver a la lista de usuarios
         </Link>

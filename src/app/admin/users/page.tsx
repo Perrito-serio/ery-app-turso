@@ -7,8 +7,8 @@ import { useSession } from 'next-auth/react';
 import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
 
-// --- INTERFAZ ACTUALIZADA ---
-// Refleja la nueva estructura de datos de la API con 'estado' y 'suspension_fin'
+// --- INTERFAZ CORREGIDA ---
+// 'roles' ahora es de tipo 'string' para coincidir con la respuesta de la API.
 interface UserFromApi {
   id: number;
   nombre: string;
@@ -17,7 +17,7 @@ interface UserFromApi {
   estado: 'activo' | 'suspendido' | 'baneado' | 'inactivo';
   suspension_fin: string | null;
   fecha_creacion: string;
-  roles: string[];
+  roles: string; // CORRECCIÓN: La API devuelve una cadena de texto, no un array.
 }
 
 // --- COMPONENTE PRINCIPAL ---
@@ -25,19 +25,16 @@ export default function AdminUsersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // --- ESTADOS ---
   const [users, setUsers] = useState<UserFromApi[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   
-  // Estados para los modales y menús
-  const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null); // ID del usuario cuyo menú está abierto
+  const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
   const [userToSuspend, setUserToSuspend] = useState<UserFromApi | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserFromApi | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // --- OBTENCIÓN DE DATOS ---
   const fetchUsers = useCallback(async () => {
     setPageLoading(true);
     setFetchError(null);
@@ -67,11 +64,8 @@ export default function AdminUsersPage() {
     }
   }, [status, session, router, fetchUsers]);
 
-  // --- MANEJADORES DE ACCIONES ---
-
-  // Función genérica para cambiar el estado de un usuario
   const handleUpdateStatus = async (userId: number, estado: 'activo' | 'suspendido' | 'baneado', suspension_fin: string | null = null) => {
-    setActionMenuOpen(null); // Cerrar menú
+    setActionMenuOpen(null);
     try {
       const response = await fetch(`/api/admin/users/${userId}/status`, {
         method: 'PUT',
@@ -81,7 +75,6 @@ export default function AdminUsersPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Error al actualizar el estado.');
       
-      // Actualizar la lista de usuarios localmente para reflejar el cambio
       setUsers(prevUsers => prevUsers.map(u => 
         u.id === userId ? { ...u, estado, suspension_fin } : u
       ));
@@ -92,11 +85,10 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Función para eliminar un usuario
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
     const userId = userToDelete.id;
-    setUserToDelete(null); // Cerrar modal de confirmación
+    setUserToDelete(null);
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
@@ -104,7 +96,6 @@ export default function AdminUsersPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Error al eliminar el usuario.');
       
-      // Eliminar el usuario de la lista local
       setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
       alert(data.message);
 
@@ -113,7 +104,6 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Cerrar menú de acciones si se hace clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -125,7 +115,6 @@ export default function AdminUsersPage() {
   }, []);
 
 
-  // --- RENDERIZADO ---
   if (status === 'loading' || pageLoading) {
     return <MainLayout pageTitle="Gestión de Usuarios"><div className="text-center">Cargando...</div></MainLayout>;
   }
@@ -157,7 +146,8 @@ export default function AdminUsersPage() {
                   <td className="px-3 py-4 text-sm text-gray-200">{user.nombre}</td>
                   <td className="px-3 py-4 text-sm text-gray-200">{user.email}</td>
                   <td className="px-3 py-4 text-sm"><StatusBadge user={user} /></td>
-                  <td className="px-3 py-4 text-sm text-gray-400">{user.roles.join(', ')}</td>
+                  {/* CORRECCIÓN: Se muestra directamente el string de roles */}
+                  <td className="px-3 py-4 text-sm text-gray-400">{user.roles || 'N/A'}</td>
                   <td className="px-3 py-4 text-sm text-center">
                     <div className="relative inline-block text-left" ref={actionMenuOpen === user.id ? menuRef : null}>
                       <button onClick={() => setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)} className="px-3 py-1 text-xs rounded bg-gray-500 hover:bg-gray-400 text-white">
@@ -192,7 +182,6 @@ export default function AdminUsersPage() {
 
 // --- COMPONENTES AUXILIARES ---
 
-// Insignia de estado con colores
 const StatusBadge: React.FC<{ user: UserFromApi }> = ({ user }) => {
   const statusStyles = {
     activo: 'bg-green-700 text-green-100',
@@ -208,7 +197,6 @@ const StatusBadge: React.FC<{ user: UserFromApi }> = ({ user }) => {
   );
 };
 
-// Modal para confirmar la suspensión
 const SuspensionModal: React.FC<{ user: UserFromApi; onClose: () => void; onConfirm: (userId: number, estado: 'suspendido', suspension_fin: string) => void; }> = ({ user, onClose, onConfirm }) => {
   const [date, setDate] = useState('');
   return (
@@ -226,7 +214,6 @@ const SuspensionModal: React.FC<{ user: UserFromApi; onClose: () => void; onConf
   );
 };
 
-// Modal genérico para confirmación de eliminación
 const ConfirmationModal: React.FC<{ user: UserFromApi; onClose: () => void; onConfirm: () => void; }> = ({ user, onClose, onConfirm }) => {
   return (
     <div className="fixed inset-0 bg-black/75 flex justify-center items-center z-50 p-4">

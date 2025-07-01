@@ -3,44 +3,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 
-// --- Interfaces (limpiadas de dependencias de mysql2) ---
+// --- INTERFAZ ACTUALIZADA ---
+// Refleja la nueva estructura de la base de datos con 'estado' y 'suspension_fin'
 interface UserListData {
   id: number;
   nombre: string;
   apellido: string | null;
   email: string;
-  activo: boolean;
+  estado: string;
+  suspension_fin: string | null;
   fecha_creacion: Date;
-  roles: string; // Se devolverán los roles como un string concatenado: "rol1,rol2"
+  roles: string; 
 }
 
 export async function GET(request: NextRequest) {
-  // Verificar autenticación
+  // Verificar autenticación y autorización
   const authResult = await getAuthenticatedUser(request);
   if (!authResult.success) {
     return createAuthErrorResponse(authResult);
   }
-
-  // Verificar autorización
   const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
   if (roleError) {
     return createAuthErrorResponse(roleError);
   }
 
   const requesterRoles = authResult.user.roles || [authResult.user.role];
-   const isRequesterAdmin = requesterRoles.includes('administrador');
+  const isRequesterAdmin = requesterRoles.includes('administrador');
 
-   console.log(`Usuario ${authResult.user.email} (Roles: ${requesterRoles.join(', ')}) está solicitando la lista de usuarios.`);
+  console.log(`Usuario ${authResult.user.email} (Roles: ${requesterRoles.join(', ')}) está solicitando la lista de usuarios.`);
 
   try {
     let usersQuery: string;
     let queryParams: (string | number)[] = [];
 
-    // La lógica SQL para diferenciar entre admin y moderador se mantiene,
-    // ya que GROUP_CONCAT y las subconsultas son compatibles con SQLite.
+    // --- CONSULTAS SQL ACTUALIZADAS ---
+    // Ambas consultas ahora seleccionan 'estado' y 'suspension_fin' en lugar de 'activo'
     if (isRequesterAdmin) {
       usersQuery = `
-        SELECT u.id, u.nombre, u.apellido, u.email, u.activo, u.fecha_creacion, 
+        SELECT u.id, u.nombre, u.apellido, u.email, u.estado, u.suspension_fin, u.fecha_creacion, 
                GROUP_CONCAT(r.nombre_rol, ', ') as roles
         FROM usuarios u
         LEFT JOIN usuario_roles ur ON u.id = ur.usuario_id
@@ -49,8 +49,9 @@ export async function GET(request: NextRequest) {
         ORDER BY u.fecha_creacion DESC
       `;
     } else {
+      // Los moderadores solo ven usuarios estándar y sus estados
       usersQuery = `
-        SELECT u.id, u.nombre, u.apellido, u.email, u.activo, u.fecha_creacion, 'usuario_estandar' as roles
+        SELECT u.id, u.nombre, u.apellido, u.email, u.estado, u.suspension_fin, u.fecha_creacion, 'usuario_estandar' as roles
         FROM usuarios u
         WHERE u.id NOT IN (
           SELECT ur.usuario_id 
@@ -67,11 +68,9 @@ export async function GET(request: NextRequest) {
         args: queryParams
     });
 
-    // Procesamos el resultado para convertir el booleano numérico a un booleano real.
-    const users = (usersRs.rows as unknown as UserListData[]).map(user => ({
-        ...user,
-        activo: Boolean(user.activo)
-    }));
+    // El post-procesamiento de 'activo' ya no es necesario.
+    // La base de datos ya devuelve los datos en el formato correcto.
+    const users = usersRs.rows as unknown as UserListData[];
 
     return NextResponse.json({ users }, { status: 200 });
 

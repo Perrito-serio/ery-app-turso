@@ -9,10 +9,8 @@ const updateUserStatusSchema = z.object({
   estado: z.enum(['activo', 'suspendido', 'baneado'], {
     errorMap: () => ({ message: "El estado debe ser 'activo', 'suspendido' o 'baneado'." })
   }),
-  // suspension_fin es opcional, pero debe ser una fecha válida en formato ISO si se proporciona
   suspension_fin: z.string().datetime({ message: "La fecha de fin de suspensión debe ser una fecha válida." }).optional().nullable(),
 }).refine(data => {
-    // Si el estado es 'suspendido', la fecha de fin es obligatoria.
     if (data.estado === 'suspendido') {
         return data.suspension_fin != null;
     }
@@ -28,13 +26,19 @@ interface RouteContext {
   };
 }
 
+interface TargetUserRole {
+    nombre_rol: string;
+}
+
 export async function PUT(request: NextRequest, { params }: RouteContext) {
-  // 1. Autenticación y Autorización del administrador
+  // 1. Autenticación y Autorización
   const authResult = await getAuthenticatedUser(request);
   if (!authResult.success) {
     return createAuthErrorResponse(authResult);
   }
-  const roleError = requireRoles(authResult.user, ['administrador']);
+  
+  // Ahora permite el acceso a administradores Y moderadores
+  const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
   if (roleError) {
     return createAuthErrorResponse(roleError);
   }
@@ -42,12 +46,35 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
   const { userId: targetUserIdString } = params;
   const targetUserId = parseInt(targetUserIdString, 10);
 
-  // Un administrador no puede cambiar su propio estado
+  // Un administrador o moderador no puede cambiar su propio estado
   if (authResult.user.id === targetUserIdString) {
-    return NextResponse.json({ message: 'Un administrador no puede cambiar su propio estado.' }, { status: 403 });
+    return NextResponse.json({ message: 'No puedes cambiar tu propio estado.' }, { status: 403 });
   }
 
-  // 2. Validación del cuerpo de la solicitud
+  const requesterRoles = authResult.user.roles || [];
+  const isRequesterAdmin = requesterRoles.includes('administrador');
+
+  // 2. Verificación de permisos adicionales para Moderadores
+  if (!isRequesterAdmin) {
+      try {
+          const targetUserRolesRs = await query({
+              sql: `SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`,
+              args: [targetUserId]
+          });
+          // CORRECCIÓN: Se añade 'as unknown' para la conversión de tipos segura.
+          const targetRoles = targetUserRolesRs.rows.map(r => (r as unknown as TargetUserRole).nombre_rol);
+
+          // Un moderador no puede actuar sobre otro moderador o un administrador
+          if (targetRoles.includes('administrador') || targetRoles.includes('moderador_contenido')) {
+              return NextResponse.json({ message: 'Acceso denegado: Un moderador no puede cambiar el estado de otros usuarios privilegiados.' }, { status: 403 });
+          }
+      } catch (error) {
+          return NextResponse.json({ message: 'Error al verificar los permisos sobre el usuario objetivo.' }, { status: 500 });
+      }
+  }
+
+
+  // 3. Validación del cuerpo de la solicitud
   let body;
   try {
     body = await request.json();
@@ -63,16 +90,12 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
   const { estado, suspension_fin } = validation.data;
 
   try {
-    // 3. Preparar y ejecutar la consulta SQL
+    // 4. Preparar y ejecutar la consulta SQL
     let sql = 'UPDATE usuarios SET estado = ?';
     const args: (string | number | null)[] = [estado];
 
-    // Si el estado es 'suspendido', añadimos la fecha. Si no, nos aseguramos de que sea NULL.
     if (estado === 'suspendido') {
-        // CORRECCIÓN: Añadimos una comprobación de tipo para satisfacer a TypeScript.
-        // La validación de Zod ya asegura que esta condición se cumplirá.
         if (typeof suspension_fin !== 'string') {
-            // Este bloque no debería ejecutarse nunca si la validación de Zod es correcta.
             return NextResponse.json({ message: "Error interno: La fecha de suspensión es requerida para el estado 'suspendido'." }, { status: 500 });
         }
         sql += ', suspension_fin = ?';
