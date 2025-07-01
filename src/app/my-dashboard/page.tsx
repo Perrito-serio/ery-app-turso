@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
-import ActivityCalendar from '@/components/ActivityCalendar'; // 1. Componente importado
+import ActivityCalendar from '@/components/ActivityCalendar';
 
 // --- Interfaces ---
 interface HabitWithStats {
@@ -19,31 +19,46 @@ interface HabitWithStats {
   racha_actual: number;
 }
 
-// --- Iconos ---
+// --- MODIFICACIÓN ---: Nueva interfaz para los datos de logros.
+interface AchievementStatus {
+  id: number;
+  unlocked: boolean;
+}
+
+// --- Iconos (sin cambios) ---
 const ChartBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-blue-400"><path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.035-.84-1.875-1.875-1.875h-.75zM9.75 8.625c-1.035 0-1.875.84-1.875 1.875v9.375c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V10.5c0-1.035-.84-1.875-1.875-1.875h-.75zM6 13.125c-1.035 0-1.875.84-1.875 1.875v4.875c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V15c0-1.035-.84-1.875-1.875-1.875H6z" /></svg>;
 const FireIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-orange-400"><path fillRule="evenodd" d="M12.963 2.286a.75.75 0 00-1.071 1.052A9.75 9.75 0 0118.635 8.25H17.25a.75.75 0 000 1.5h3a.75.75 0 00.75-.75V6a.75.75 0 00-1.5 0v1.127a11.252 11.252 0 00-9.865-6.872.75.75 0 00-.61 1.031Zm-2.033 18.428a.75.75 0 001.071-1.052A9.75 9.75 0 015.365 15.75H6.75a.75.75 0 000-1.5h-3a.75.75 0 00-.75.75V18a.75.75 0 001.5 0v-1.127a11.252 11.252 0 009.865 6.872.75.75 0 00.61-1.031Z" clipRule="evenodd" /></svg>;
 const TrophyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-yellow-400"><path fillRule="evenodd" d="M16.5 3.75a1.5 1.5 0 011.5 1.5v1.5h-3v-1.5a1.5 1.5 0 011.5-1.5zM8.25 3.75a1.5 1.5 0 011.5 1.5v1.5H6v-1.5a1.5 1.5 0 011.5-1.5zM12 2.25a.75.75 0 01.75.75v17.5a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM4.5 9.75a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H5.25a.75.75 0 01-.75-.75zM4.5 12.75a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H5.25a.75.75 0 01-.75-.75z" clipRule="evenodd" /></svg>;
-const PositiveHabitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 mr-2 text-green-400"><path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.496-12.744a.75.75 0 011.04-.208z" clipRule="evenodd" /></svg>;
-const NegativeHabitIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 mr-2 text-red-400"><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clipRule="evenodd" /></svg>;
 
 export default function UserDashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
   const [habitsData, setHabitsData] = useState<HabitWithStats[]>([]);
+  // --- MODIFICACIÓN ---: Nuevo estado para los logros.
+  const [achievementsData, setAchievementsData] = useState<AchievementStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // --- MODIFICACIÓN ---: La función ahora carga los datos de hábitos y logros en paralelo.
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/dashboard');
-      if (!response.ok) {
-        throw new Error('No se pudo cargar la información del dashboard.');
-      }
-      const data = await response.json();
-      setHabitsData(data.habits_con_estadisticas || []);
+      const [dashboardRes, achievementsRes] = await Promise.all([
+        fetch('/api/dashboard'),
+        fetch('/api/achievements')
+      ]);
+
+      if (!dashboardRes.ok) throw new Error('No se pudo cargar la información del dashboard.');
+      if (!achievementsRes.ok) throw new Error('No se pudo cargar la información de logros.');
+      
+      const dashboardData = await dashboardRes.json();
+      const achievementsData = await achievementsRes.json();
+
+      setHabitsData(dashboardData.habits_con_estadisticas || []);
+      setAchievementsData(achievementsData.achievements || []);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido.');
     } finally {
@@ -70,6 +85,8 @@ export default function UserDashboardPage() {
 
   const totalHabits = habitsData.length;
   const bestStreak = habitsData.reduce((max, habit) => habit.racha_actual > max ? habit.racha_actual : max, 0);
+  // --- MODIFICACIÓN ---: Calcular el número de logros desbloqueados.
+  const unlockedAchievementsCount = achievementsData.filter(ach => ach.unlocked).length;
   
   return (
     <MainLayout pageTitle="Mi Dashboard">
@@ -80,7 +97,8 @@ export default function UserDashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex items-center space-x-4"><ChartBarIcon /><div><p className="text-sm text-gray-400">Hábitos Activos</p><p className="text-2xl font-bold text-white">{totalHabits}</p></div></div>
             <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex items-center space-x-4"><FireIcon /><div><p className="text-sm text-gray-400">Mejor Racha Actual</p><p className="text-2xl font-bold text-white">{bestStreak} días</p></div></div>
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex items-center space-x-4"><TrophyIcon /><div><p className="text-sm text-gray-400">Logros</p><p className="text-2xl font-bold text-white">0</p></div></div>
+            {/* --- MODIFICACIÓN ---: Mostrar el contador de logros dinámico. */}
+            <div className="bg-gray-800 p-6 rounded-lg shadow-lg flex items-center space-x-4"><TrophyIcon /><div><p className="text-sm text-gray-400">Logros</p><p className="text-2xl font-bold text-white">{unlockedAchievementsCount}</p></div></div>
           </div>
 
           <div>
@@ -114,8 +132,6 @@ export default function UserDashboardPage() {
                 <h3 className="text-xl font-semibold text-white mb-4">Actividad Reciente</h3>
                 <p className="text-gray-400 text-sm">Aún no hay actividad reciente.</p>
             </div>
-
-            {/* 2. Aquí se renderiza el nuevo Calendario */}
             <ActivityCalendar />
         </div>
       </div>
