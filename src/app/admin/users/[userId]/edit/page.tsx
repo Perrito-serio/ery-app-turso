@@ -42,6 +42,8 @@ export default function AdminEditUserPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  // En Next.js 15, no podemos usar React.use en componentes cliente
+  // Usamos el valor directamente, ya que useParams ya es seguro en componentes cliente
   const userId = params.userId as string;
 
   // --- Estados ---

@@ -26,6 +26,8 @@ export default function RoutineDetailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  // En Next.js 15, no podemos usar React.use en componentes cliente
+  // Usamos el valor directamente, ya que useParams ya es seguro en componentes cliente
   const routineId = params.routineId as string;
 
   const [routine, setRoutine] = useState<RoutineDetails | null>(null);

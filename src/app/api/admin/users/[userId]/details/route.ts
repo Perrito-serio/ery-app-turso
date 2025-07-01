@@ -44,7 +44,8 @@ export async function GET(
     return createAuthErrorResponse(roleError);
   }
 
-  const targetUserId = parseInt(params.userId, 10);
+  const { userId } = await params;
+  const targetUserId = parseInt(userId, 10);
 
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a obtener es inválido.' }, { status: 400 });
@@ -103,7 +104,8 @@ export async function PUT(
     return createAuthErrorResponse(roleError);
   }
 
-  const targetUserId = parseInt(params.userId, 10);
+  const { userId } = await params;
+  const targetUserId = parseInt(userId, 10);
 
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });

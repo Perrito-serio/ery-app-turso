@@ -43,7 +43,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return createAuthErrorResponse(authResult);
   }
   const userId = authResult.user.id;
-  const routineId = parseInt(params.routineId, 10);
+  const { routineId: routineIdStr } = await params;
+  const routineId = parseInt(routineIdStr, 10);
 
   // Validar el cuerpo de la solicitud
   const body = await request.json();
@@ -102,7 +103,8 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
         return createAuthErrorResponse(authResult);
     }
     const userId = authResult.user.id;
-    const routineId = parseInt(params.routineId, 10);
+    const { routineId: routineIdStr } = await params;
+    const routineId = parseInt(routineIdStr, 10);
 
     // Para DELETE, el ID del hábito vendrá en el cuerpo de la solicitud
     const body = await request.json();

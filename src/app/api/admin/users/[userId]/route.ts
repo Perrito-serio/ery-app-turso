@@ -56,7 +56,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId } = params;
+  const { userId } = await params;
   const numericUserId = parseInt(userId, 10);
   if (isNaN(numericUserId)) {
     return NextResponse.json({ message: 'ID de usuario inválido en la ruta.' }, { status: 400 });
@@ -109,7 +109,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId: targetUserIdString } = params;
+  const { userId: targetUserIdString } = await params;
   const targetUserId = parseInt(targetUserIdString, 10);
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
@@ -190,7 +190,7 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId: targetUserIdString } = params;
+  const { userId: targetUserIdString } = await params;
   const targetUserId = parseInt(targetUserIdString, 10);
 
   // 2. Prevenir la auto-eliminación

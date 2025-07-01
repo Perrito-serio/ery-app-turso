@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId } = params;
+  const { userId } = await params;
   const numericUserId = parseInt(userId, 10);
 
   if (isNaN(numericUserId)) {

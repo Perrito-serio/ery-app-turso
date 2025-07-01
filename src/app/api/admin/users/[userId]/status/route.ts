@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId: targetUserIdString } = params;
+  const { userId: targetUserIdString } = await params;
   const targetUserId = parseInt(targetUserIdString, 10);
 
   // Un administrador o moderador no puede cambiar su propio estado
