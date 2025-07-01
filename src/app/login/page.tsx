@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 
-// --- Interfaces y componente FormField (se mantienen igual) ---
+// --- Interfaces y componente FormField (sin cambios) ---
 interface LoginFormData {
   email: string;
   password: string;
@@ -35,11 +35,9 @@ const FormField: React.FC<FormFieldProps> = ({ label, name, type = 'text', value
   </div>
 );
 
-
-// --- 1. Se extrae la lógica del formulario a un componente hijo ---
 function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // El hook que causa el problema
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState<LoginFormData>({ email: '', password: '' });
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +75,8 @@ function LoginForm() {
     setIsLoading(false);
 
     if (result?.ok) {
+      // --- MODIFICACIÓN ---: Redirigir siempre a la página principal.
+      // La página principal se encargará de la redirección basada en roles.
       router.push('/');
     } else {
       if (result?.error) {
@@ -92,10 +92,10 @@ function LoginForm() {
   };
 
   const handleGoogleSignIn = () => {
+    // La redirección de Google también irá a la página principal por defecto.
     signIn('google', { callbackUrl: '/' }); 
   };
 
-  // El JSX del formulario se mantiene aquí
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -132,7 +132,6 @@ function LoginForm() {
   );
 }
 
-// --- 2. El componente principal que se exporta AHORA envuelve todo en Suspense ---
 export default function LoginPage() {
   return (
     <Suspense fallback={<div>Cargando...</div>}>
