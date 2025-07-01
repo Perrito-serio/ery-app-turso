@@ -1,3 +1,4 @@
+// src/app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
@@ -51,14 +52,11 @@ export async function POST(request: NextRequest) {
   }
 
   const { nombre, apellido, email, password, fecha_nacimiento, telefono, direccion, ciudad, pais } = validation.data;
-
-  // --- CORRECCIÓN: Limpiar los datos de entrada antes de usarlos ---
   const trimmedNombre = nombre.trim();
   const trimmedEmail = email.trim();
   const trimmedPassword = password.trim();
 
   try {
-    // Usamos el email limpio para verificar si ya existe
     const existingUserRs = await query({
         sql: 'SELECT id FROM usuarios WHERE email = ?',
         args: [trimmedEmail]
@@ -67,15 +65,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'El correo electrónico ya está registrado.' }, { status: 409 });
     }
 
-    // Usamos la contraseña limpia para crear el hash
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(trimmedPassword, salt);
 
-    // Guardamos los datos limpios en la base de datos
+    // --- CONSULTA CORREGIDA ---
+    // Se ha eliminado la columna 'activo' de la sentencia INSERT.
+    // La columna 'estado' tomará su valor por defecto ('activo').
     const result = await query({
         sql: `
-          INSERT INTO usuarios (nombre, apellido, email, password_hash, fecha_nacimiento, telefono, direccion, ciudad, pais, activo)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO usuarios (nombre, apellido, email, password_hash, fecha_nacimiento, telefono, direccion, ciudad, pais)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         args: [
             trimmedNombre, 
@@ -86,8 +85,7 @@ export async function POST(request: NextRequest) {
             telefono || null, 
             direccion || null, 
             ciudad || null, 
-            pais || null, 
-            1 // 1 para TRUE en SQLite
+            pais || null,
         ]
     });
 
@@ -125,7 +123,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const typedError = error as { message?: string; code?: string; };
-    console.error('Error en /api/auth/register:', typedError);
+    console.error('Error en /api/auth/register:', error);
     if (typedError.code === 'SQLITE_CONSTRAINT') {
         return NextResponse.json({ message: 'El correo electrónico ya está registrado (error de BD).' }, { status: 409 });
     }

@@ -1,51 +1,54 @@
 // src/app/admin/users/page.tsx
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
 
+// --- INTERFAZ ACTUALIZADA ---
+// Refleja la nueva estructura de datos de la API con 'estado' y 'suspension_fin'
 interface UserFromApi {
   id: number;
   nombre: string;
   apellido: string | null;
   email: string;
-  activo: boolean | number;
+  estado: 'activo' | 'suspendido' | 'baneado' | 'inactivo';
+  suspension_fin: string | null;
   fecha_creacion: string;
   roles: string[];
 }
 
+// --- COMPONENTE PRINCIPAL ---
 export default function AdminUsersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  // --- ESTADOS ---
   const [users, setUsers] = useState<UserFromApi[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<Record<number, boolean>>({});
-  const [sortColumn, setSortColumn] = useState<keyof UserFromApi | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Estados para los modales y menús
+  const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null); // ID del usuario cuyo menú está abierto
+  const [userToSuspend, setUserToSuspend] = useState<UserFromApi | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserFromApi | null>(null);
 
-  // PAGINACIÓN
-  const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 10; // Puedes ajustar este valor
+  const menuRef = useRef<HTMLDivElement>(null);
 
+  // --- OBTENCIÓN DE DATOS ---
   const fetchUsers = useCallback(async () => {
     setPageLoading(true);
     setFetchError(null);
     try {
       const response = await fetch('/api/admin/users');
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Fallo al obtener usuarios.' }));
         throw new Error(errorData.message || `Error ${response.status}`);
       }
-
       const data: { users: UserFromApi[] } = await response.json();
-      setUsers(data.users.map(u => ({ ...u, activo: Boolean(u.activo) })) || []);
+      setUsers(data.users || []);
     } catch (err) {
       console.error("Error fetching users:", err);
       setFetchError(err instanceof Error ? err.message : 'Ocurrió un error desconocido.');
@@ -57,281 +60,184 @@ export default function AdminUsersPage() {
   useEffect(() => {
     if (status === 'loading') return;
     if (status === 'unauthenticated') router.push('/login');
-    if (status === 'authenticated') {
-      if (session?.user?.roles?.includes('administrador')) {
-        fetchUsers();
-      } else {
-        setPageLoading(false);
-      }
+    if (status === 'authenticated' && session?.user?.roles?.includes('administrador')) {
+      fetchUsers();
+    } else {
+      setPageLoading(false);
     }
   }, [status, session, router, fetchUsers]);
 
-  const handleToggleActive = async (userId: number, currentIsActive: boolean) => {
-    if (session?.user?.id === userId) {
-      alert("Un administrador no puede cambiar su propio estado activo.");
-      return;
-    }
-    setActionLoading(prev => ({ ...prev, [userId]: true }));
-    setFetchError(null);
+  // --- MANEJADORES DE ACCIONES ---
+
+  // Función genérica para cambiar el estado de un usuario
+  const handleUpdateStatus = async (userId: number, estado: 'activo' | 'suspendido' | 'baneado', suspension_fin: string | null = null) => {
+    setActionMenuOpen(null); // Cerrar menú
     try {
-      const response = await fetch(`/api/admin/users/${userId}/toggle-active`, {
+      const response = await fetch(`/api/admin/users/${userId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activo: !currentIsActive }),
+        body: JSON.stringify({ estado, suspension_fin }),
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Error al actualizar el estado.');
+      
+      // Actualizar la lista de usuarios localmente para reflejar el cambio
+      setUsers(prevUsers => prevUsers.map(u => 
+        u.id === userId ? { ...u, estado, suspension_fin } : u
+      ));
+      alert(data.message);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error ${response.status}`);
-      }
-
-      setUsers(prev =>
-        prev.map(u => u.id === userId ? { ...u, activo: !currentIsActive } : u)
-      );
-      alert(`Usuario ${userId} ha sido ${!currentIsActive ? 'activado' : 'desactivado'}.`);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error.';
-      setFetchError(errorMessage);
-      alert(`Error: ${errorMessage}`);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [userId]: false }));
+      alert(err instanceof Error ? err.message : 'Ocurrió un error desconocido.');
     }
   };
 
-  const handleSort = (column: keyof UserFromApi) => {
-    if (sortColumn === column) {
-      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
+  // Función para eliminar un usuario
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    const userId = userToDelete.id;
+    setUserToDelete(null); // Cerrar modal de confirmación
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Error al eliminar el usuario.');
+      
+      // Eliminar el usuario de la lista local
+      setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+      alert(data.message);
+
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Ocurrió un error desconocido.');
     }
   };
 
-  // Filtrar usuarios basado en el término de búsqueda
-  const filteredUsers = useMemo(() => {
-    if (!searchTerm.trim()) return users;
-    
-    const searchLower = searchTerm.toLowerCase().trim();
-    return users.filter(user => 
-      user.nombre.toLowerCase().includes(searchLower) ||
-      (user.apellido && user.apellido.toLowerCase().includes(searchLower)) ||
-      user.email.toLowerCase().includes(searchLower) ||
-      user.id.toString().includes(searchLower)
-    );
-  }, [users, searchTerm]);
-
-  const sortedUsers = useMemo(() => {
-    const usersToSort = filteredUsers;
-    if (!sortColumn) return usersToSort;
-
-    return [...usersToSort].sort((a, b) => {
-      const aValue = a[sortColumn];
-      const bValue = b[sortColumn];
-
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
-        return sortDirection === 'asc'
-          ? Number(aValue) - Number(bValue)
-          : Number(bValue) - Number(aValue);
-      }
-      return 0;
-    });
-  }, [filteredUsers, sortColumn, sortDirection]);
-
-  const totalPages = Math.ceil(sortedUsers.length / usersPerPage);
-
-  // PAGINACIÓN
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * usersPerPage;
-    const end = start + usersPerPage;
-    return sortedUsers.slice(start, end);
-  }, [sortedUsers, currentPage, usersPerPage]);
-
-  // Resetear página cuando cambie el filtro
+  // Cerrar menú de acciones si se hace clic fuera
   useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
-  }, [currentPage, totalPages]);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActionMenuOpen(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
+
+  // --- RENDERIZADO ---
   if (status === 'loading' || pageLoading) {
-    return (
-      <MainLayout pageTitle="Gestión de Usuarios">
-        <div className="flex justify-center items-center h-full">
-          <h1 className="text-3xl font-bold">Cargando...</h1>
-        </div>
-      </MainLayout>
-    );
+    return <MainLayout pageTitle="Gestión de Usuarios"><div className="text-center">Cargando...</div></MainLayout>;
   }
 
   if (!session?.user?.roles?.includes('administrador')) {
-    return (
-      <MainLayout pageTitle="Acceso Denegado">
-        <div className="text-center text-red-500">
-          <h1 className="text-4xl font-bold">Acceso Denegado</h1>
-          <p>No tienes permisos.</p>
-        </div>
-      </MainLayout>
-    );
+    return <MainLayout pageTitle="Acceso Denegado"><div className="text-center text-red-500">No tienes permisos.</div></MainLayout>;
   }
 
   return (
     <MainLayout pageTitle="Gestión de Usuarios">
       <div className="bg-gray-800 p-4 rounded-lg shadow-xl">
         <h2 className="text-2xl font-semibold mb-6 text-white">Administrar Usuarios</h2>
-        {fetchError && (
-          <div className="bg-red-700 text-white p-3 rounded mb-4">{fetchError}</div>
-        )}
+        {fetchError && <div className="bg-red-700 text-white p-3 rounded mb-4">{fetchError}</div>}
         
-        {/* Buscador */}
-        <div className="mb-6">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Buscar usuarios por nombre, apellido, email o ID..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1); // Resetear a la primera página al buscar
-              }}
-              className="w-full px-4 py-3 pl-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            {searchTerm && (
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setCurrentPage(1);
-                }}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-          {searchTerm && (
-            <div className="mt-2 text-sm text-gray-400">
-              Mostrando {sortedUsers.length} de {users.length} usuarios
-              {sortedUsers.length === 0 && (
-                <span className="text-yellow-400 ml-2">- No se encontraron resultados</span>
-              )}
-            </div>
-          )}
-        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full bg-gray-700 rounded">
             <thead className="bg-gray-600">
               <tr>
-                {['id', 'nombre', 'apellido', 'email', 'activo', 'fecha_creacion'].map(col => (
-                  <th
-                    key={col}
-                    onClick={() => handleSort(col as keyof UserFromApi)}
-                    className="cursor-pointer px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider hover:text-white"
-                  >
-                    {col.toUpperCase()} {sortColumn === col ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                  </th>
-                ))}
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">Acciones</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">Usuario</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">Estado</th>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-300 uppercase">Roles</th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-300 uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-600">
-              {paginatedUsers.length > 0 ? (
-                paginatedUsers.map(userItem => {
-                  // Función para resaltar el texto de búsqueda
-                  const highlightText = (text: string, search: string) => {
-                    if (!search.trim()) return text;
-                    const regex = new RegExp(`(${search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-                    const parts = text.split(regex);
-                    return parts.map((part, index) => 
-                      regex.test(part) ? (
-                        <span key={index} className="bg-yellow-600 text-yellow-100 px-1 rounded">
-                          {part}
-                        </span>
-                      ) : part
-                    );
-                  };
-
-                  return (
-                    <tr key={userItem.id} className="hover:bg-gray-600">
-                      <td className="px-3 py-4 text-sm text-gray-200">
-                        {highlightText(userItem.id.toString(), searchTerm)}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-gray-200">
-                        {highlightText(userItem.nombre, searchTerm)}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-gray-200">
-                        {userItem.apellido ? highlightText(userItem.apellido, searchTerm) : '-'}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-gray-200">
-                        {highlightText(userItem.email, searchTerm)}
-                      </td>
-                      <td className="px-3 py-4 text-sm">
-                        <span className={`px-2 inline-flex text-xs font-semibold rounded-full ${userItem.activo ? 'bg-green-700 text-green-100' : 'bg-red-700 text-red-100'}`}>
-                          {userItem.activo ? 'Sí' : 'No'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-4 text-sm text-gray-400">{new Date(userItem.fecha_creacion).toLocaleDateString()}</td>
-                      <td className="px-3 py-4 text-sm">
-                        <button
-                          onClick={() => handleToggleActive(userItem.id, Boolean(userItem.activo))}
-                          disabled={actionLoading[userItem.id] || session?.user?.id === userItem.id}
-                          className={`px-3 py-1 text-xs rounded ${userItem.activo ? 'bg-yellow-600' : 'bg-green-600'} text-white hover:opacity-80 disabled:opacity-50 mr-2`}
-                        >
-                          {actionLoading[userItem.id] ? '...' : userItem.activo ? 'Desactivar' : 'Activar'}
-                        </button>
-                        <Link href={`/admin/users/${userItem.id}/edit`} className="text-indigo-400 hover:underline">
-                          Editar
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7} className="text-center py-4 text-gray-400">
-                    {searchTerm ? 'No se encontraron usuarios que coincidan con la búsqueda.' : 'No se encontraron usuarios.'}
+              {users.map(user => (
+                <tr key={user.id} className="hover:bg-gray-600">
+                  <td className="px-3 py-4 text-sm text-gray-200">{user.nombre}</td>
+                  <td className="px-3 py-4 text-sm text-gray-200">{user.email}</td>
+                  <td className="px-3 py-4 text-sm"><StatusBadge user={user} /></td>
+                  <td className="px-3 py-4 text-sm text-gray-400">{user.roles.join(', ')}</td>
+                  <td className="px-3 py-4 text-sm text-center">
+                    <div className="relative inline-block text-left" ref={actionMenuOpen === user.id ? menuRef : null}>
+                      <button onClick={() => setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)} className="px-3 py-1 text-xs rounded bg-gray-500 hover:bg-gray-400 text-white">
+                        Acciones
+                      </button>
+                      {actionMenuOpen === user.id && (
+                        <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 z-10">
+                          <div className="py-1" role="menu" aria-orientation="vertical">
+                            <Link href={`/admin/users/${user.id}/edit`} className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Editar</Link>
+                            {user.estado !== 'suspendido' && <button onClick={() => setUserToSuspend(user)} className="block w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-gray-700">Suspender</button>}
+                            {user.estado !== 'baneado' && <button onClick={() => handleUpdateStatus(user.id, 'baneado')} className="block w-full text-left px-4 py-2 text-sm text-orange-500 hover:bg-gray-700">Banear</button>}
+                            {user.estado !== 'activo' && <button onClick={() => handleUpdateStatus(user.id, 'activo')} className="block w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-gray-700">Reactivar</button>}
+                            <div className="border-t border-gray-700 my-1"></div>
+                            <button onClick={() => setUserToDelete(user)} className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-700">Eliminar</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>
-        {/* Controles de paginación */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center mt-4 gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50 hover:bg-gray-500"
-            >
-              Anterior
-            </button>
-            <span className="text-gray-200">
-              Página {currentPage} de {totalPages} ({sortedUsers.length} usuarios)
-            </span>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50 hover:bg-gray-500"
-            >
-              Siguiente
-            </button>
-          </div>
-        )}
       </div>
+
+      {userToSuspend && <SuspensionModal user={userToSuspend} onClose={() => setUserToSuspend(null)} onConfirm={handleUpdateStatus} />}
+      {userToDelete && <ConfirmationModal user={userToDelete} onClose={() => setUserToDelete(null)} onConfirm={handleDeleteUser} />}
     </MainLayout>
   );
 }
+
+// --- COMPONENTES AUXILIARES ---
+
+// Insignia de estado con colores
+const StatusBadge: React.FC<{ user: UserFromApi }> = ({ user }) => {
+  const statusStyles = {
+    activo: 'bg-green-700 text-green-100',
+    suspendido: 'bg-yellow-700 text-yellow-100',
+    baneado: 'bg-red-700 text-red-100',
+    inactivo: 'bg-gray-600 text-gray-200',
+  };
+  return (
+    <span className={`px-2 inline-flex text-xs font-semibold rounded-full ${statusStyles[user.estado]}`}>
+      {user.estado.charAt(0).toUpperCase() + user.estado.slice(1)}
+      {user.estado === 'suspendido' && user.suspension_fin && ` (hasta ${new Date(user.suspension_fin).toLocaleDateString()})`}
+    </span>
+  );
+};
+
+// Modal para confirmar la suspensión
+const SuspensionModal: React.FC<{ user: UserFromApi; onClose: () => void; onConfirm: (userId: number, estado: 'suspendido', suspension_fin: string) => void; }> = ({ user, onClose, onConfirm }) => {
+  const [date, setDate] = useState('');
+  return (
+    <div className="fixed inset-0 bg-black/75 flex justify-center items-center z-50 p-4">
+      <div className="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-sm">
+        <h3 className="text-lg font-semibold text-white">Suspender a {user.nombre}</h3>
+        <p className="text-sm text-gray-400 mt-2 mb-4">Selecciona la fecha en que terminará la suspensión.</p>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white" />
+        <div className="flex justify-end gap-4 mt-6">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md">Cancelar</button>
+          <button onClick={() => onConfirm(user.id, 'suspendido', new Date(date).toISOString())} disabled={!date} className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-md disabled:opacity-50">Suspender</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Modal genérico para confirmación de eliminación
+const ConfirmationModal: React.FC<{ user: UserFromApi; onClose: () => void; onConfirm: () => void; }> = ({ user, onClose, onConfirm }) => {
+  return (
+    <div className="fixed inset-0 bg-black/75 flex justify-center items-center z-50 p-4">
+      <div className="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-sm">
+        <h3 className="text-lg font-semibold text-white">¿Estás seguro?</h3>
+        <p className="text-sm text-gray-400 mt-2 mb-4">Estás a punto de eliminar permanentemente a <span className="font-bold">{user.nombre}</span>. Esta acción no se puede deshacer.</p>
+        <div className="flex justify-end gap-4 mt-6">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md">Cancelar</button>
+          <button onClick={onConfirm} className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md">Sí, eliminar</button>
+        </div>
+      </div>
+    </div>
+  );
+};

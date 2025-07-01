@@ -1,3 +1,4 @@
+// src/app/api/auth/token/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
@@ -9,12 +10,15 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+// --- INTERFAZ ACTUALIZADA ---
+// Refleja la nueva estructura de la tabla usuarios
 interface AppUser {
   id: number;
   nombre: string;
   email: string;
   password_hash: string;
-  activo: boolean | number;
+  estado: 'activo' | 'suspendido' | 'baneado' | 'inactivo';
+  suspension_fin: string | null;
 }
 interface UserRole {
   nombre_rol: string;
@@ -30,14 +34,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password } = parsedCredentials.data;
-
-    // --- CORRECCIÓN: Limpiar los datos de entrada ---
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
 
-    // Usamos las variables limpias para la consulta
+    // --- CONSULTA CORREGIDA ---
+    // Se selecciona 'estado' y 'suspension_fin' en lugar de 'activo'
     const rs = await query({
-      sql: 'SELECT id, email, nombre, password_hash, activo FROM usuarios WHERE email = ?',
+      sql: 'SELECT id, email, nombre, password_hash, estado, suspension_fin FROM usuarios WHERE email = ?',
       args: [trimmedEmail],
     });
 
@@ -47,11 +50,17 @@ export async function POST(request: NextRequest) {
 
     const user = rs.rows[0] as unknown as AppUser;
 
-    if (!user.activo) {
-      return NextResponse.json({ message: 'La cuenta está desactivada' }, { status: 403 });
+    // --- LÓGICA DE ESTADO ACTUALIZADA ---
+    if (user.estado === 'baneado' || user.estado === 'inactivo') {
+      return NextResponse.json({ message: 'Esta cuenta ha sido desactivada.' }, { status: 403 });
+    }
+    if (user.estado === 'suspendido' && user.suspension_fin) {
+        if (new Date() < new Date(user.suspension_fin)) {
+            const formattedDate = new Date(user.suspension_fin).toLocaleDateString('es-ES');
+            return NextResponse.json({ message: `Tu cuenta está suspendida hasta el ${formattedDate}.` }, { status: 403 });
+        }
     }
 
-    // Usamos la variable limpia para la comparación
     const isPasswordMatch = await bcrypt.compare(trimmedPassword, user.password_hash);
     if (!isPasswordMatch) {
       return NextResponse.json({ message: 'Credenciales incorrectas' }, { status: 401 });

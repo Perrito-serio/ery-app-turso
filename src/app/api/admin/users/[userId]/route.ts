@@ -5,13 +5,14 @@ import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-// --- Interfaces (limpiadas de dependencias de mysql2) ---
+// --- INTERFACES ACTUALIZADAS ---
 interface UserDetailsData {
   id: number;
   nombre: string;
   apellido: string | null;
   email: string;
-  activo: boolean;
+  estado: string; // Reemplaza a 'activo'
+  suspension_fin: string | null; // Nuevo campo
   fecha_creacion: Date;
   roles: string[];
 }
@@ -20,7 +21,8 @@ interface UserFromDB {
     nombre: string;
     apellido: string | null;
     email: string;
-    activo: number | boolean;
+    estado: string; // Reemplaza a 'activo'
+    suspension_fin: string | null; // Nuevo campo
     fecha_creacion: string | Date;
 }
 interface UserRoleFromDB {
@@ -43,29 +45,27 @@ const adminUpdateUserSchema = z.object({
 });
 
 
-// --- GET: Obtener detalles y roles de un usuario ---
-export async function GET(request: NextRequest, context: RouteContext) {
-  // Verificar autenticación
+// --- GET: Obtener detalles y roles de un usuario (ACTUALIZADO) ---
+export async function GET(request: NextRequest, { params }: RouteContext) {
   const authResult = await getAuthenticatedUser(request);
   if (!authResult.success) {
     return createAuthErrorResponse(authResult);
   }
-
-  // Verificar autorización
   const roleError = requireRoles(authResult.user, ['administrador']);
   if (roleError) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId } = context.params;
+  const { userId } = params;
   const numericUserId = parseInt(userId, 10);
   if (isNaN(numericUserId)) {
     return NextResponse.json({ message: 'ID de usuario inválido en la ruta.' }, { status: 400 });
   }
 
   try {
+    // Se actualiza la consulta para obtener los nuevos campos 'estado' y 'suspension_fin'
     const userRs = await query({
-        sql: 'SELECT id, nombre, apellido, email, activo, fecha_creacion FROM usuarios WHERE id = ?',
+        sql: 'SELECT id, nombre, apellido, email, estado, suspension_fin, fecha_creacion FROM usuarios WHERE id = ?',
         args: [numericUserId]
     });
     if (userRs.rows.length === 0) {
@@ -79,12 +79,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
     });
     const roles = rolesRs.rows.map(role => (role as unknown as UserRoleFromDB).nombre_rol);
 
+    // Se actualiza el objeto de respuesta
     const userDetails: UserDetailsData = {
       id: rawUserData.id,
       nombre: rawUserData.nombre,
       apellido: rawUserData.apellido,
       email: rawUserData.email,
-      activo: Boolean(rawUserData.activo),
+      estado: rawUserData.estado,
+      suspension_fin: rawUserData.suspension_fin,
       fecha_creacion: new Date(rawUserData.fecha_creacion),
       roles: roles,
     };
@@ -96,21 +98,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 
-// --- PUT: Actualizar detalles de un usuario por un administrador ---
-export async function PUT(request: NextRequest, context: RouteContext) {
-  // Verificar autenticación
+// --- PUT: Actualizar detalles de un usuario por un administrador (sin cambios) ---
+export async function PUT(request: NextRequest, { params }: RouteContext) {
   const authResult = await getAuthenticatedUser(request);
   if (!authResult.success) {
     return createAuthErrorResponse(authResult);
   }
-
-  // Verificar autorización
   const roleError = requireRoles(authResult.user, ['administrador']);
   if (roleError) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId: targetUserIdString } = context.params;
+  const { userId: targetUserIdString } = params;
   const targetUserId = parseInt(targetUserIdString, 10);
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
@@ -176,5 +175,44 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ message: 'El correo electrónico ya está en uso.' }, { status: 409 });
     }
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
+  }
+}
+
+// --- NUEVA FUNCIÓN DELETE ---
+export async function DELETE(request: NextRequest, { params }: RouteContext) {
+  // 1. Autenticación y Autorización
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
+  const roleError = requireRoles(authResult.user, ['administrador']);
+  if (roleError) {
+    return createAuthErrorResponse(roleError);
+  }
+
+  const { userId: targetUserIdString } = params;
+  const targetUserId = parseInt(targetUserIdString, 10);
+
+  // 2. Prevenir la auto-eliminación
+  if (authResult.user.id === targetUserIdString) {
+    return NextResponse.json({ message: 'Un administrador no puede eliminarse a sí mismo.' }, { status: 403 });
+  }
+
+  try {
+    // 3. Ejecutar la eliminación
+    const result = await query({
+      sql: 'DELETE FROM usuarios WHERE id = ?',
+      args: [targetUserId],
+    });
+
+    if (result.rowsAffected === 0) {
+      return NextResponse.json({ message: `Usuario con ID ${targetUserId} no encontrado.` }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: `Usuario con ID ${targetUserId} ha sido eliminado permanentemente.` }, { status: 200 });
+
+  } catch (error) {
+    console.error(`Error al eliminar el usuario ID ${targetUserId}:`, error);
+    return NextResponse.json({ message: 'Error interno del servidor al eliminar el usuario.' }, { status: 500 });
   }
 }

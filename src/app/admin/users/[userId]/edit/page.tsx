@@ -8,13 +8,16 @@ import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
 import { z } from 'zod';
 
-// --- Interfaces ---
+// --- INTERFACES ACTUALIZADAS ---
+// La interfaz ahora incluye los nuevos campos de estado que devuelve la API
 interface UserToEdit {
   id: number;
   nombre: string;
   apellido: string | null;
   email: string;
   roles: string[];
+  estado: string;
+  suspension_fin: string | null;
 }
 interface AvailableRole {
   id: number;
@@ -27,7 +30,7 @@ type DetailsFormData = {
   password?: string;
 };
 
-// --- Esquema de validación con Zod para el formulario de detalles ---
+// --- Esquema de validación (sin cambios) ---
 const editDetailsSchema = z.object({
   nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres.").regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/, "El nombre solo puede contener letras y espacios."),
   apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/, "El apellido solo puede contener letras y espacios.").optional(),
@@ -42,17 +45,14 @@ export default function AdminEditUserPage() {
   const params = useParams();
   const userId = params.userId as string;
 
-  // --- Estados ---
+  // --- ESTADOS ACTUALIZADOS ---
   const [userToEdit, setUserToEdit] = useState<UserToEdit | null>(null);
   const [availableRoles, setAvailableRoles] = useState<AvailableRole[]>([]);
-  
-  // Estado para el formulario de detalles
   const [detailsFormData, setDetailsFormData] = useState<DetailsFormData>({ nombre: '', apellido: '', email: '', password: '' });
   
-  // Estado para el formulario de roles
-  const [selectedRoleIds, setSelectedRoleIds] = useState<Set<number>>(new Set());
+  // CAMBIO: Se usa un estado para un único ID de rol, no un Set
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
 
-  // Estados de carga y mensajes para cada formulario
   const [pageLoading, setPageLoading] = useState(true);
   const [detailsSubmitting, setDetailsSubmitting] = useState(false);
   const [rolesSubmitting, setRolesSubmitting] = useState(false);
@@ -85,7 +85,6 @@ export default function AdminEditUserPage() {
         setUserToEdit(userData.user);
         setAvailableRoles(rolesData.roles || []);
         
-        // Inicializar los formularios con los datos obtenidos
         setDetailsFormData({
           nombre: userData.user.nombre,
           apellido: userData.user.apellido || '',
@@ -93,12 +92,12 @@ export default function AdminEditUserPage() {
           password: ''
         });
 
-        const currentUserRoleIds = new Set<number>();
-        userData.user.roles.forEach(userRoleName => {
-          const roleObj = rolesData.roles.find(r => r.nombre_rol === userRoleName);
-          if (roleObj) currentUserRoleIds.add(roleObj.id);
-        });
-        setSelectedRoleIds(currentUserRoleIds);
+        // CAMBIO: Asignar el primer rol del usuario como el rol seleccionado
+        const primaryUserRoleName = userData.user.roles[0];
+        const primaryRoleObj = rolesData.roles.find(r => r.nombre_rol === primaryUserRoleName);
+        if (primaryRoleObj) {
+            setSelectedRoleId(primaryRoleObj.id);
+        }
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar datos.');
@@ -114,13 +113,9 @@ export default function AdminEditUserPage() {
     setDetailsFormData({ ...detailsFormData, [e.target.name]: e.target.value });
   };
   
-  const handleRoleChange = (roleId: number, isChecked: boolean) => {
-    setSelectedRoleIds(prev => {
-      const newSelected = new Set(prev);
-      if (isChecked) newSelected.add(roleId);
-      else newSelected.delete(roleId);
-      return newSelected;
-    });
+  // CAMBIO: El manejador de roles ahora solo establece el ID seleccionado
+  const handleRoleChange = (roleId: number) => {
+    setSelectedRoleId(roleId);
   };
 
   const handleDetailsSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -165,9 +160,16 @@ export default function AdminEditUserPage() {
     setError(null);
     setSuccess(null);
 
-    if (session?.user?.id === parseInt(userId)) {
+    if (!selectedRoleId) {
+        setError("Debes seleccionar un rol para el usuario.");
+        setRolesSubmitting(false);
+        return;
+    }
+
+    // SOLUCIÓN AL ERROR DE TIPADO 1: Comparar strings con strings
+    if (session?.user?.id === userId) {
       const adminRole = availableRoles.find(r => r.nombre_rol === 'administrador');
-      if (adminRole && !selectedRoleIds.has(adminRole.id)) {
+      if (adminRole && selectedRoleId !== adminRole.id) {
         alert("Un administrador no puede quitarse a sí mismo el rol de 'administrador'.");
         setRolesSubmitting(false);
         return;
@@ -175,10 +177,11 @@ export default function AdminEditUserPage() {
     }
 
     try {
+      // CAMBIO: Enviar un solo roleId en lugar de un array
       const response = await fetch(`/api/admin/users/${userId}/roles`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roleIds: Array.from(selectedRoleIds) }),
+        body: JSON.stringify({ roleId: selectedRoleId }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Fallo al actualizar roles.');
@@ -207,11 +210,10 @@ export default function AdminEditUserPage() {
     <MainLayout pageTitle={`Editando Usuario: ${userToEdit.nombre}`}>
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* --- Formulario para Editar Detalles del Usuario --- */}
+        {/* --- Formulario para Editar Detalles del Usuario (sin cambios en JSX) --- */}
         <div className="bg-gray-800 p-6 rounded-lg shadow-xl">
           <h2 className="text-2xl font-semibold mb-6 text-white">Editar Datos de <span className="text-indigo-400">{userToEdit.email}</span></h2>
           <form onSubmit={handleDetailsSubmit} className="space-y-4">
-            {/* Nombre y Apellido */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="nombre" className="block text-sm font-medium text-gray-300">Nombre</label>
@@ -222,38 +224,38 @@ export default function AdminEditUserPage() {
                 <input type="text" name="apellido" id="apellido" value={detailsFormData.apellido || ''} onChange={handleDetailsChange} className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"/>
               </div>
             </div>
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300">Email</label>
               <input type="email" name="email" id="email" value={detailsFormData.email} onChange={handleDetailsChange} className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"/>
             </div>
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300">Nueva Contraseña (opcional)</label>
               <input type="password" name="password" id="password" value={detailsFormData.password || ''} onChange={handleDetailsChange} className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="Dejar en blanco para no cambiar"/>
             </div>
             <div className="pt-2">
-              <button type="submit" disabled={detailsSubmitting} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md ...">
+              <button type="submit" disabled={detailsSubmitting} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-md transition-colors disabled:opacity-50">
                 {detailsSubmitting ? 'Guardando Datos...' : 'Guardar Datos'}
               </button>
             </div>
           </form>
         </div>
 
-        {/* --- Formulario para Gestionar Roles --- */}
+        {/* --- Formulario para Gestionar Roles (ACTUALIZADO A RADIO BUTTONS) --- */}
         <div className="bg-gray-800 p-6 rounded-lg shadow-xl">
-          <h2 className="text-2xl font-semibold mb-6 text-white">Gestionar Roles</h2>
+          <h2 className="text-2xl font-semibold mb-6 text-white">Gestionar Rol del Usuario</h2>
           <form onSubmit={handleRolesSubmit}>
             <fieldset>
               <div className="space-y-2">
                 {availableRoles.map(role => (
                   <label key={role.id} className="flex items-center p-3 bg-gray-700 rounded-md hover:bg-gray-600 cursor-pointer">
                     <input
-                      type="checkbox"
-                      className="h-5 w-5 text-indigo-500 bg-gray-600 border-gray-500 rounded focus:ring-indigo-400 focus:ring-offset-gray-800"
-                      checked={selectedRoleIds.has(role.id)}
-                      onChange={(e) => handleRoleChange(role.id, e.target.checked)}
-                      disabled={session?.user?.id === userToEdit.id && role.nombre_rol === 'administrador'}
+                      type="radio"
+                      name="roleSelection" // El 'name' agrupa los radio buttons
+                      className="h-5 w-5 text-indigo-500 bg-gray-600 border-gray-500 focus:ring-indigo-400 focus:ring-offset-gray-800"
+                      checked={selectedRoleId === role.id}
+                      onChange={() => handleRoleChange(role.id)}
+                      // SOLUCIÓN AL ERROR DE TIPADO 2: Comparar strings con strings
+                      disabled={session?.user?.id === String(userToEdit.id) && role.nombre_rol === 'administrador'}
                     />
                     <span className="ml-3 text-sm text-gray-300">{role.nombre_rol}</span>
                   </label>
@@ -261,14 +263,13 @@ export default function AdminEditUserPage() {
               </div>
             </fieldset>
             <div className="pt-6">
-              <button type="submit" disabled={rolesSubmitting} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md ...">
-                {rolesSubmitting ? 'Guardando Roles...' : 'Guardar Roles'}
+              <button type="submit" disabled={rolesSubmitting} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md shadow-md transition-colors disabled:opacity-50">
+                {rolesSubmitting ? 'Guardando Rol...' : 'Guardar Rol'}
               </button>
             </div>
           </form>
         </div>
 
-        {/* Mensajes de Éxito/Error y Navegación */}
         {error && <div className="mt-4 p-3 bg-red-700 text-white rounded text-center">{error}</div>}
         {success && <div className="mt-4 p-3 bg-green-700 text-white rounded text-center">{success}</div>}
         <Link href="/admin/users" className="block text-center mt-4 text-indigo-400 hover:underline">
