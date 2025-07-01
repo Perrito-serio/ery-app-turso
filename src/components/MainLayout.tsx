@@ -32,7 +32,6 @@ const HabitsIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
   </svg>
 );
-// NUEVO: Ícono para Rutinas
 const RoutinesIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-3">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
@@ -48,6 +47,13 @@ const LogoutIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
   </svg>
 );
+// --- MODIFICACIÓN ---: Ícono para el panel de moderación.
+const ShieldIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-3">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
+    </svg>
+);
+
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -62,18 +68,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // Array de enlaces de navegación actualizado
+  // --- MODIFICACIÓN ---: Se actualiza la lista de enlaces y sus permisos.
   const navLinks = [
-    // Enlaces para todos los roles
     { href: '/', text: 'Inicio', icon: <HomeIcon />, roles: ['administrador', 'usuario_estandar', 'moderador_contenido'] },
     { href: '/my-dashboard', text: 'Mi Dashboard', icon: <MyDashboardIcon />, roles: ['administrador', 'usuario_estandar', 'moderador_contenido'] },
     { href: '/profile', text: 'Mi Perfil', icon: <ProfileIcon />, roles: ['administrador', 'usuario_estandar', 'moderador_contenido'] },
     
-    // Enlaces para Usuario Estándar y Administrador
-    { href: '/habits', text: 'Mis Hábitos', icon: <HabitsIcon />, roles: ['usuario_estandar', 'administrador'] },
-    // NUEVO: Enlace para Rutinas
-    { href: '/routines', text: 'Mis Rutinas', icon: <RoutinesIcon />, roles: ['usuario_estandar', 'administrador'] },
+    // Ahora visible para moderadores también
+    { href: '/habits', text: 'Mis Hábitos', icon: <HabitsIcon />, roles: ['usuario_estandar', 'administrador', 'moderador_contenido'] },
+    { href: '/routines', text: 'Mis Rutinas', icon: <RoutinesIcon />, roles: ['usuario_estandar', 'administrador', 'moderador_contenido'] },
     
+    // Enlace solo para Moderadores
+    { href: '/control/users', text: 'Moderar Usuarios', icon: <ShieldIcon />, roles: ['moderador_contenido'] },
+
     // Enlaces solo para Administrador
     { href: '/dashboard', text: 'Dashboard Admin', icon: <DashboardIcon />, roles: ['administrador'] },
     { href: '/admin/users', text: 'Gestión Usuarios', icon: <UsersIcon />, roles: ['administrador'] },
@@ -83,7 +90,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
 
   return (
     <div className="flex h-screen bg-gray-900 text-white">
-      {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-gray-800 shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:block`}>
         <div className="p-5 border-b border-gray-700">
           <Link href="/" className="text-2xl font-bold text-white hover:text-indigo-400">
@@ -131,7 +137,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
         </div>
       </aside>
 
-      {/* Contenido Principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-gray-800 shadow-md md:shadow-none">
           <div className="flex items-center justify-between px-6 py-4">

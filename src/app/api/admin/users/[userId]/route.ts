@@ -5,14 +5,14 @@ import { query } from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 
-// --- INTERFACES ACTUALIZADAS ---
+// --- INTERFACES ---
 interface UserDetailsData {
   id: number;
   nombre: string;
   apellido: string | null;
   email: string;
-  estado: string; // Reemplaza a 'activo'
-  suspension_fin: string | null; // Nuevo campo
+  estado: string;
+  suspension_fin: string | null;
   fecha_creacion: Date;
   roles: string[];
 }
@@ -21,8 +21,8 @@ interface UserFromDB {
     nombre: string;
     apellido: string | null;
     email: string;
-    estado: string; // Reemplaza a 'activo'
-    suspension_fin: string | null; // Nuevo campo
+    estado: string;
+    suspension_fin: string | null;
     fecha_creacion: string | Date;
 }
 interface UserRoleFromDB {
@@ -34,7 +34,6 @@ interface RouteContext {
   };
 }
 
-// --- Zod Schema para PUT (sin cambios) ---
 const adminUpdateUserSchema = z.object({
   nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres.").regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/, "El nombre solo puede contener letras y espacios.").optional(),
   apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/, "El apellido solo puede contener letras y espacios.").optional(),
@@ -51,19 +50,41 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   if (!authResult.success) {
     return createAuthErrorResponse(authResult);
   }
-  const roleError = requireRoles(authResult.user, ['administrador']);
+  // --- MODIFICACIÓN ---: Se permite el acceso a 'moderador_contenido'.
+  const roleError = requireRoles(authResult.user, ['administrador', 'moderador_contenido']);
   if (roleError) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId } = await params;
+  const { userId } = params;
   const numericUserId = parseInt(userId, 10);
   if (isNaN(numericUserId)) {
     return NextResponse.json({ message: 'ID de usuario inválido en la ruta.' }, { status: 400 });
   }
 
+  // --- NUEVA LÓGICA DE SEGURIDAD PARA MODERADORES ---
+  // Si el que hace la petición NO es administrador, verificamos que no esté
+  // intentando ver los detalles de otro administrador o moderador.
+  const isRequesterAdmin = authResult.user.roles?.includes('administrador');
+  if (!isRequesterAdmin) {
+      try {
+          const targetUserRolesRs = await query({
+              sql: `SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`,
+              args: [numericUserId]
+          });
+          const targetRoles = targetUserRolesRs.rows.map(r => (r as any).nombre_rol);
+
+          if (targetRoles.includes('administrador') || targetRoles.includes('moderador_contenido')) {
+              return NextResponse.json({ message: 'Acceso denegado: Un moderador no puede ver los detalles de otros usuarios con roles elevados.' }, { status: 403 });
+          }
+      } catch (error) {
+          console.error(`Error al verificar los roles del usuario objetivo ID ${numericUserId}:`, error);
+          return NextResponse.json({ message: 'Error al verificar los permisos sobre el usuario objetivo.' }, { status: 500 });
+      }
+  }
+  // --- FIN DE LA LÓGICA DE SEGURIDAD ---
+
   try {
-    // Se actualiza la consulta para obtener los nuevos campos 'estado' y 'suspension_fin'
     const userRs = await query({
         sql: 'SELECT id, nombre, apellido, email, estado, suspension_fin, fecha_creacion FROM usuarios WHERE id = ?',
         args: [numericUserId]
@@ -79,7 +100,6 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
     });
     const roles = rolesRs.rows.map(role => (role as unknown as UserRoleFromDB).nombre_rol);
 
-    // Se actualiza el objeto de respuesta
     const userDetails: UserDetailsData = {
       id: rawUserData.id,
       nombre: rawUserData.nombre,
@@ -109,7 +129,7 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId: targetUserIdString } = await params;
+  const { userId: targetUserIdString } = params;
   const targetUserId = parseInt(targetUserIdString, 10);
   if (isNaN(targetUserId)) {
     return NextResponse.json({ message: 'ID de usuario a editar es inválido.' }, { status: 400 });
@@ -178,9 +198,8 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
   }
 }
 
-// --- NUEVA FUNCIÓN DELETE ---
+// --- DELETE: Eliminar un usuario (sin cambios) ---
 export async function DELETE(request: NextRequest, { params }: RouteContext) {
-  // 1. Autenticación y Autorización
   const authResult = await getAuthenticatedUser(request);
   if (!authResult.success) {
     return createAuthErrorResponse(authResult);
@@ -190,16 +209,14 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     return createAuthErrorResponse(roleError);
   }
 
-  const { userId: targetUserIdString } = await params;
+  const { userId: targetUserIdString } = params;
   const targetUserId = parseInt(targetUserIdString, 10);
 
-  // 2. Prevenir la auto-eliminación
   if (authResult.user.id === targetUserIdString) {
     return NextResponse.json({ message: 'Un administrador no puede eliminarse a sí mismo.' }, { status: 403 });
   }
 
   try {
-    // 3. Ejecutar la eliminación
     const result = await query({
       sql: 'DELETE FROM usuarios WHERE id = ?',
       args: [targetUserId],

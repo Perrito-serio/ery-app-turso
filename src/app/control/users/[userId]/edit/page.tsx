@@ -8,42 +8,43 @@ import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
 import { z } from 'zod';
 
-// --- INTERFAZ SIMPLIFICADA ---
-// Solo necesitamos los datos que se van a mostrar y editar.
+// --- INTERFACES ---
 interface UserToEdit {
   id: number;
   nombre: string;
   apellido: string | null;
   email: string;
+  estado: 'activo' | 'suspendido' | 'baneado' | 'inactivo';
+  suspension_fin: string | null;
 }
-type FormDataType = Omit<UserToEdit, 'id'> & { password?: string };
 
-// --- Esquema de validación (sin cambios) ---
-const editUserSchema = z.object({
-  nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres.").regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]+$/, "El nombre solo puede contener letras y espacios."),
-  apellido: z.string().regex(/^[a-zA-Z\sñÑáéíóúÁÉÍÓÚ]*$/, "El apellido solo puede contener letras y espacios.").optional(),
-  email: z.string().email("Formato de correo electrónico inválido."),
-  password: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres.").optional().or(z.literal('')),
+// --- Esquema de validación para el cambio de estado ---
+const updateUserStatusSchema = z.object({
+  estado: z.enum(['activo', 'suspendido', 'baneado']),
+  suspension_fin: z.string().datetime().optional().nullable(),
+}).refine(data => data.estado !== 'suspendido' || !!data.suspension_fin, {
+  message: "Para suspender, se debe proporcionar una fecha de fin de suspensión.",
+  path: ["suspension_fin"],
 });
 
-
-export default function EditUserDetailsPage() {
+export default function EditModeratorViewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  // En Next.js 15, no podemos usar React.use en componentes cliente
-  // Usamos el valor directamente, ya que useParams ya es seguro en componentes cliente
   const userId = params.userId as string;
 
-  const [formData, setFormData] = useState<FormDataType>({ nombre: '', apellido: '', email: '', password: '' });
+  const [user, setUser] = useState<UserToEdit | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // --- CORRECCIÓN 1 ---: Se añade 'inactivo' a los tipos posibles del estado.
+  const [newStatus, setNewStatus] = useState<'activo' | 'suspendido' | 'baneado' | 'inactivo' | ''>('');
+  const [suspensionDate, setSuspensionDate] = useState('');
 
   useEffect(() => {
     if (status === 'loading') return;
-
     const canAccess = session?.user?.roles?.includes('administrador') || session?.user?.roles?.includes('moderador_contenido');
     if (!canAccess) {
       router.push('/login');
@@ -53,22 +54,21 @@ export default function EditUserDetailsPage() {
     const fetchData = async () => {
       setPageLoading(true);
       try {
-        // --- LLAMADA A LA API CORREGIDA ---
-        // Usamos el endpoint que devuelve los detalles del usuario.
-        const response = await fetch(`/api/admin/users/${userId}/details`);
+        // Este endpoint obtiene todos los detalles, incluido el estado.
+        const response = await fetch(`/api/admin/users/${userId}`);
         if (!response.ok) {
           const errData = await response.json();
           throw new Error(errData.message || "No se pudo cargar la información del usuario.");
         }
         const data: { user: UserToEdit } = await response.json();
-        setFormData({
-          nombre: data.user.nombre,
-          apellido: data.user.apellido || '',
-          email: data.user.email,
-          password: ''
-        });
+        setUser(data.user);
+        setNewStatus(data.user.estado);
+        if (data.user.suspension_fin) {
+          // Formatear la fecha para el input type="date"
+          setSuspensionDate(new Date(data.user.suspension_fin).toISOString().split('T')[0]);
+        }
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Error al cargar datos.');
+        setError(err instanceof Error ? err.message : 'Error al cargar datos.');
       } finally {
         setPageLoading(false);
       }
@@ -76,112 +76,118 @@ export default function EditUserDetailsPage() {
     fetchData();
   }, [userId, status, session, router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setFormError(null);
-    setFormSuccess(null);
-  };
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleStatusSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setFormError(null);
-    setFormSuccess(null);
+    setError(null);
+    setSuccess(null);
 
-    const validation = editUserSchema.safeParse(formData);
+    const validation = updateUserStatusSchema.safeParse({
+      estado: newStatus,
+      suspension_fin: newStatus === 'suspendido' ? new Date(suspensionDate).toISOString() : null,
+    });
+
     if (!validation.success) {
       const errorMsg = Object.values(validation.error.flatten().fieldErrors).flat().join(' ');
-      setFormError(errorMsg || "Por favor, corrige los errores en el formulario.");
+      setError(errorMsg || "Por favor, corrige los errores.");
       setIsSubmitting(false);
       return;
     }
-    
-    const bodyToSend: Partial<FormDataType> = {};
-    if (validation.data.nombre) bodyToSend.nombre = validation.data.nombre;
-    if (validation.data.apellido !== undefined) bodyToSend.apellido = validation.data.apellido;
-    if (validation.data.email) bodyToSend.email = validation.data.email;
-    if (validation.data.password) bodyToSend.password = validation.data.password;
 
     try {
-      // --- LLAMADA A LA API CORREGIDA ---
-      const response = await fetch(`/api/admin/users/${userId}/details`, {
+      const response = await fetch(`/api/admin/users/${userId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyToSend),
+        body: JSON.stringify(validation.data),
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Fallo al actualizar el usuario.');
+      if (!response.ok) throw new Error(data.message || 'Fallo al actualizar el estado.');
       
-      setFormSuccess(data.message || '¡Usuario actualizado con éxito!');
-      setFormData(prev => ({...prev, password: ''}));
+      setSuccess(data.message || 'Estado actualizado con éxito.');
+      // --- CORRECCIÓN 2 ---: Asegurarse de que suspension_fin nunca sea undefined.
+      setUser(prev => prev ? { ...prev, estado: validation.data.estado, suspension_fin: validation.data.suspension_fin ?? null } : null);
 
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Error al guardar los cambios.');
+      setError(err instanceof Error ? err.message : 'Error al guardar los cambios.');
     } finally {
       setIsSubmitting(false);
     }
   };
-  
-  // --- Renderizado Condicional ---
+
   if (status === 'loading' || pageLoading) {
     return <MainLayout pageTitle="Editar Usuario"><div className="text-center">Cargando...</div></MainLayout>;
   }
-
-  const canAccess = session?.user?.roles?.includes('administrador') || session?.user?.roles?.includes('moderador_contenido');
-  if (!canAccess) {
-    return (
-        <MainLayout pageTitle="Acceso Denegado">
-            <div className="text-center text-red-500">No tienes permisos para acceder a esta página.</div>
-        </MainLayout>
-    );
-  }
   
-  if (formError && !formData.nombre) {
+  if (error && !user) {
      return (
       <MainLayout pageTitle="Error">
-        <div className="text-center text-red-500">{formError}</div>
+        <div className="text-center text-red-500">{error}</div>
         <div className="text-center mt-4">
-          <Link href="/control/users" className="text-indigo-400 hover:underline">Volver al Control de Usuarios</Link>
+          <Link href="/control/users" className="text-indigo-400 hover:underline">Volver al Panel de Control</Link>
         </div>
       </MainLayout>
      );
   }
 
   return (
-    <MainLayout pageTitle={`Editando Usuario ID: ${userId}`}>
+    <MainLayout pageTitle={`Moderando a: ${user?.nombre}`}>
       <div className="bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl mx-auto">
-        <h2 className="text-2xl font-semibold mb-6 text-white">Editando Datos del Usuario</h2>
+        <h2 className="text-2xl font-semibold mb-1 text-white">Detalles del Usuario</h2>
+        <p className="text-sm text-gray-400 mb-6">ID de Usuario: {user?.id}</p>
         
-        {formError && <div className="mb-4 p-3 bg-red-700 text-white rounded">{formError}</div>}
-        {formSuccess && <div className="mb-4 p-3 bg-green-700 text-white rounded">{formSuccess}</div>}
+        <div className="space-y-4 mb-8">
+            <div><strong className="text-gray-300">Nombre:</strong> <span className="text-white">{user?.nombre} {user?.apellido}</span></div>
+            <div><strong className="text-gray-300">Email:</strong> <span className="text-white">{user?.email}</span></div>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <hr className="border-gray-700"/>
+
+        <h3 className="text-xl font-semibold mt-6 mb-4 text-white">Cambiar Estado del Usuario</h3>
+        
+        {error && <div className="mb-4 p-3 bg-red-700 text-white rounded">{error}</div>}
+        {success && <div className="mb-4 p-3 bg-green-700 text-white rounded">{success}</div>}
+
+        <form onSubmit={handleStatusSubmit} className="space-y-4">
           <div>
-            <label htmlFor="nombre" className="block text-sm font-medium text-gray-300">Nombre</label>
-            <input type="text" name="nombre" id="nombre" value={formData.nombre} onChange={handleChange} className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"/>
+            <label htmlFor="estado" className="block text-sm font-medium text-gray-300">Nuevo Estado</label>
+            <select 
+              name="estado" 
+              id="estado" 
+              value={newStatus} 
+              onChange={(e) => setNewStatus(e.target.value as any)}
+              className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="activo">Activo</option>
+              <option value="suspendido">Suspendido</option>
+              <option value="baneado">Baneado</option>
+              <option value="inactivo" disabled>Inactivo (solo lectura)</option>
+            </select>
           </div>
-          <div>
-            <label htmlFor="apellido" className="block text-sm font-medium text-gray-300">Apellido</label>
-            <input type="text" name="apellido" id="apellido" value={formData.apellido || ''} onChange={handleChange} className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"/>
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300">Email</label>
-            <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"/>
-          </div>
-           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300">Nueva Contraseña (opcional)</label>
-            <input type="password" name="password" id="password" value={formData.password || ''} onChange={handleChange} className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="Dejar en blanco para no cambiar"/>
-          </div>
+
+          {newStatus === 'suspendido' && (
+            <div>
+              <label htmlFor="suspension_fin" className="block text-sm font-medium text-gray-300">Fecha de Fin de Suspensión</label>
+              <input 
+                type="date" 
+                name="suspension_fin" 
+                id="suspension_fin" 
+                value={suspensionDate} 
+                onChange={(e) => setSuspensionDate(e.target.value)} 
+                className="mt-1 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+                required
+              />
+            </div>
+          )}
 
           <div className="pt-4">
             <button type="submit" disabled={isSubmitting} className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50">
-              {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+              {isSubmitting ? 'Actualizando...' : 'Actualizar Estado'}
             </button>
           </div>
         </form>
         <Link href="/control/users" className="block text-center mt-6 text-indigo-400 hover:underline">
-            Volver al Control de Usuarios
+            &larr; Volver al Panel de Control
         </Link>
       </div>
     </MainLayout>

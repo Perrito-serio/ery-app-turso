@@ -14,7 +14,7 @@ export default function ModeratePage() {
   const isLoading = status === 'loading';
   const user = session?.user;
 
-  // Roles que tienen acceso a esta página
+  // --- MODIFICACIÓN ---: Roles que tienen acceso a cualquier panel de moderación/admin.
   const allowedRoles = ['administrador', 'moderador_contenido'];
 
   useEffect(() => {
@@ -43,7 +43,6 @@ export default function ModeratePage() {
     );
   }
 
-  // Verificar si el usuario tiene alguno de los roles permitidos
   const canAccessPage = allowedRoles.some(role => user.roles?.includes(role));
 
   if (!canAccessPage) {
@@ -52,7 +51,7 @@ export default function ModeratePage() {
         <div className="flex flex-col items-center justify-center text-center h-full">
           <h1 className="text-4xl font-bold text-red-500 mb-4">Acceso Denegado</h1>
           <p className="text-xl text-gray-300">
-            No tienes los permisos de moderador o administrador para ver esta sección.
+            No tienes los permisos necesarios para ver esta sección.
           </p>
           <button
             onClick={() => router.push('/')}
@@ -65,16 +64,29 @@ export default function ModeratePage() {
     );
   }
 
-  // Si el usuario tiene el rol permitido, mostrar el contenido de la página de moderación
+  // --- MODIFICACIÓN ---: Contenido actualizado para ser un panel útil.
   return (
     <MainLayout pageTitle="Panel de Moderación">
       <div className="bg-gray-800 p-6 rounded-lg shadow-xl">
-        <h2 className="text-2xl font-semibold mb-6 text-white">Herramientas de Moderación</h2>
-        <div className="text-gray-300">
-          <p>
-            Esta área está reservada para la gestión y moderación de contenido.
-            (Funcionalidad a implementar).
-          </p>
+        <h2 className="text-2xl font-semibold mb-2 text-white">¡Bienvenido, Moderador!</h2>
+        <p className="text-gray-400 mb-6">Desde aquí puedes acceder a las herramientas para mantener la comunidad segura y ordenada.</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md hover:bg-gray-600 transition-colors">
+              <h3 className="text-lg font-medium text-indigo-400 mb-2">Gestión de Usuarios</h3>
+              <p className="text-gray-300">
+                Ver, suspender o banear cuentas de usuarios estándar que infrinjan las normas.
+              </p>
+              <Link href="/control/users" className="text-indigo-400 hover:underline mt-4 inline-block font-semibold">
+                Ir a Gestión de Usuarios &rarr;
+              </Link>
+            </div>
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md opacity-50">
+              <h3 className="text-lg font-medium text-green-400 mb-2">Moderación de Contenido</h3>
+              <p className="text-gray-300">
+                Revisar y eliminar contenido inapropiado. (Próximamente)
+              </p>
+            </div>
         </div>
       </div>
     </MainLayout>
