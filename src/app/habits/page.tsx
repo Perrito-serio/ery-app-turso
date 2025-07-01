@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, FormEvent } from 'react';
+import React, { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import MainLayout from '@/components/MainLayout';
-// --- MODIFICACIÓN ---: Importar el nuevo modal de confirmación.
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 
-// --- Interfaces (sin cambios) ---
+// --- Interfaces ---
 interface Habit {
   id: number;
   nombre: string;
@@ -24,7 +23,7 @@ interface NewHabit {
   meta_objetivo?: number;
 }
 
-// --- Helpers de fecha (sin cambios) ---
+// --- Helpers de Fecha ---
 const localToday = new Date();
 function getLocalDateString(date: Date): string {
     const year = date.getFullYear();
@@ -34,19 +33,20 @@ function getLocalDateString(date: Date): string {
 }
 const todayStringForAPI = getLocalDateString(localToday);
 
-// --- Componente Principal (Modificado) ---
+// --- Componente Principal (Reestructurado) ---
 export default function HabitsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const [allHabits, setAllHabits] = useState<Habit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-
-  // --- MODIFICACIÓN ---: Estados para manejar el modal de eliminación.
   const [habitToDelete, setHabitToDelete] = useState<Habit | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Estado para controlar la vista activa: hábitos buenos o malos.
+  const [activeView, setActiveView] = useState<'good' | 'bad'>('good');
 
   const fetchHabits = useCallback(async () => {
     setIsLoading(true);
@@ -54,7 +54,7 @@ export default function HabitsPage() {
       const response = await fetch('/api/habits');
       if (!response.ok) throw new Error('No se pudieron cargar los hábitos.');
       const data = await response.json();
-      setHabits(data.habits || []);
+      setAllHabits(data.habits || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido.');
     } finally {
@@ -63,54 +63,42 @@ export default function HabitsPage() {
   }, []);
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchHabits();
-    }
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
+    if (status === 'authenticated') fetchHabits();
+    if (status === 'unauthenticated') router.push('/login');
   }, [status, router, fetchHabits]);
 
-  // --- MODIFICACIÓN ---: Función para manejar la confirmación de eliminación.
+  // Usamos useMemo para filtrar los hábitos sin recalcular en cada render.
+  const { goodHabits, badHabits } = useMemo(() => {
+    const good = allHabits.filter(h => h.tipo !== 'MAL_HABITO');
+    const bad = allHabits.filter(h => h.tipo === 'MAL_HABITO');
+    return { goodHabits: good, badHabits: bad };
+  }, [allHabits]);
+
   const handleConfirmDelete = async () => {
     if (!habitToDelete) return;
-
     setIsDeleting(true);
     setError(null);
-
     try {
-      const response = await fetch(`/api/habits/${habitToDelete.id}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`/api/habits/${habitToDelete.id}`, { method: 'DELETE' });
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al eliminar el hábito.');
-      }
-
-      // Actualizar el estado para remover el hábito de la UI.
-      setHabits(prevHabits => prevHabits.filter(h => h.id !== habitToDelete.id));
-      setHabitToDelete(null); // Cerrar el modal
-
+      if (!response.ok) throw new Error(data.message || 'Error al eliminar.');
+      setAllHabits(prev => prev.filter(h => h.id !== habitToDelete.id));
+      setHabitToDelete(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido.');
+      setError(err instanceof Error ? err.message : 'Ocurrió un error.');
     } finally {
       setIsDeleting(false);
     }
   };
-  
+
   if (status === 'loading' || isLoading) {
     return <MainLayout pageTitle="Mis Hábitos"><div className="text-center">Cargando...</div></MainLayout>;
   }
 
-  if (status === 'unauthenticated') {
-    return <MainLayout pageTitle="Redirigiendo"><div className="text-center">Redirigiendo a inicio de sesión...</div></MainLayout>;
-  }
-  
   return (
     <MainLayout pageTitle="Mis Hábitos y Adicciones">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-white">Mi Panel de Hábitos</h2>
+        <h2 className="text-2xl font-semibold text-white">Mi Panel de Seguimiento</h2>
         <button
           onClick={() => setCreateModalOpen(true)}
           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md shadow-lg"
@@ -119,31 +107,43 @@ export default function HabitsPage() {
         </button>
       </div>
 
+      {/* Pestañas para cambiar de vista */}
+      <div className="mb-6 border-b border-gray-700">
+        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+          <button
+            onClick={() => setActiveView('good')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeView === 'good' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500'}`}
+          >
+            Mis Hábitos (Buenos)
+          </button>
+          <button
+            onClick={() => setActiveView('bad')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeView === 'bad' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500'}`}
+          >
+            Mis Adicciones (A superar)
+          </button>
+        </nav>
+      </div>
+
       {error && <div className="bg-red-700 text-white p-3 rounded mb-4" onClick={() => setError(null)}>{error}</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {habits.length > 0 ? (
-          // --- MODIFICACIÓN ---: Pasar la función para abrir el modal a cada tarjeta.
-          habits.map(habit => <HabitCard key={habit.id} habit={habit} onDeleteClick={() => setHabitToDelete(habit)} />)
-        ) : (
-          <div className="col-span-full text-center text-gray-400 bg-gray-800 p-8 rounded-lg">
-            <p>Aún no has creado ningún hábito.</p>
-            <p>¡Haz clic en "Crear Hábito" para empezar tu camino!</p>
-          </div>
-        )}
-      </div>
+      {/* Renderizado condicional de la lista de hábitos */}
+      {activeView === 'good' && (
+        <HabitList habits={goodHabits} onHabitDelete={setHabitToDelete} title="Hábitos a Construir" />
+      )}
+      {activeView === 'bad' && (
+        <HabitList habits={badHabits} onHabitDelete={setHabitToDelete} title="Hábitos a Superar" />
+      )}
 
       {isCreateModalOpen && (
         <CreateHabitModal
           onClose={() => setCreateModalOpen(false)}
           onHabitCreated={(newHabit) => {
-            setHabits(prev => [newHabit, ...prev]);
+            setAllHabits(prev => [newHabit, ...prev]);
             setCreateModalOpen(false);
           }}
         />
       )}
-
-      {/* --- MODIFICACIÓN ---: Renderizar el modal de confirmación. */}
       <ConfirmationModal
         isOpen={!!habitToDelete}
         onClose={() => setHabitToDelete(null)}
@@ -157,22 +157,37 @@ export default function HabitsPage() {
   );
 }
 
-// --- Componente para la tarjeta de cada hábito (Modificado) ---
-type Notification = {
-    message: string;
-    type: 'success' | 'error';
+// --- Componente para renderizar la lista de hábitos ---
+const HabitList: React.FC<{ habits: Habit[]; onHabitDelete: (habit: Habit) => void; title: string; }> = ({ habits, onHabitDelete, title }) => {
+  if (habits.length === 0) {
+    return (
+      <div className="text-center text-gray-400 bg-gray-800 p-8 rounded-lg">
+        <h3 className="text-xl font-semibold text-white mb-2">No hay nada aquí todavía.</h3>
+        <p>¡Crea un nuevo hábito para empezar a seguir tu progreso!</p>
+      </div>
+    );
+  }
+  return (
+    <>
+      <h3 className="text-xl font-semibold text-gray-300 mb-4">{title}</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {habits.map(habit => <HabitCard key={habit.id} habit={habit} onDeleteClick={() => onHabitDelete(habit)} />)}
+      </div>
+    </>
+  );
 };
 
-// --- MODIFICACIÓN ---: La tarjeta ahora recibe 'onDeleteClick' como prop.
+
+// --- Componente para la tarjeta de cada hábito (Lógica de registro corregida) ---
 const HabitCard: React.FC<{ habit: Habit; onDeleteClick: () => void; }> = ({ habit, onDeleteClick }) => {
-    const [notification, setNotification] = useState<Notification | null>(null);
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error'; } | null>(null);
 
     const showNotification = (message: string, type: 'success' | 'error') => {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 3000);
     };
 
-    const logProgress = async (payload: { valor_booleano?: boolean; valor_numerico?: number; es_recaida?: boolean; }) => {
+    const logProgress = async (payload: { valor_booleano?: boolean; valor_numerico?: number; }) => {
         setNotification(null);
         try {
             const body = { habito_id: habit.id, fecha_registro: todayStringForAPI, ...payload };
@@ -182,8 +197,8 @@ const HabitCard: React.FC<{ habit: Habit; onDeleteClick: () => void; }> = ({ hab
                 body: JSON.stringify(body),
             });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.message || "Error al registrar el progreso.");
-            showNotification(data.message || `Progreso para "${habit.nombre}" registrado.`, 'success');
+            if (!response.ok) throw new Error(data.message || "Error al registrar.");
+            showNotification(data.message || "Progreso registrado.", 'success');
         } catch (error) {
             showNotification(error instanceof Error ? error.message : "Error desconocido.", 'error');
         }
@@ -206,36 +221,27 @@ const HabitCard: React.FC<{ habit: Habit; onDeleteClick: () => void; }> = ({ hab
                     </form>
                 );
             case 'MAL_HABITO':
-                return <button onClick={() => logProgress({ es_recaida: true })} className="w-full mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-semibold">Registrar Recaída Hoy</button>;
+                // Para un mal hábito, la API ahora sabe que un registro simple es una recaída.
+                return <button onClick={() => logProgress({})} className="w-full mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white font-semibold">Registrar Recaída Hoy</button>;
             default: return null;
         }
     };
 
     return (
         <div className="bg-gray-800 p-4 rounded-lg shadow-lg flex flex-col justify-between relative">
-            {/* --- MODIFICACIÓN ---: Botón de eliminar en la esquina superior derecha. */}
-            <button
-              onClick={onDeleteClick}
-              className="absolute top-2 right-2 text-gray-500 hover:text-red-400 transition-colors p-1 rounded-full"
-              aria-label={`Eliminar hábito ${habit.nombre}`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
-              </svg>
+            <button onClick={onDeleteClick} className="absolute top-2 right-2 text-gray-500 hover:text-red-400 transition-colors p-1 rounded-full" aria-label={`Eliminar hábito ${habit.nombre}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
             </button>
-
             <div>
                 <h3 className="text-lg font-bold text-white pr-8">{habit.nombre}</h3>
                 <p className="text-sm text-gray-400 mt-1">{habit.descripcion || 'Sin descripción'}</p>
-                <p className="text-xs text-indigo-400 mt-2 font-mono">Tipo: {habit.tipo}</p>
+                <p className="text-xs text-indigo-400 mt-2 font-mono">{habit.tipo.replace('_', ' ')}</p>
             </div>
             <div className="mt-4">
                 <p className="text-sm text-gray-400">Registrar progreso para hoy ({localToday.toLocaleDateString()}):</p>
                 {renderAction()}
                 {notification && (
-                    <div className={`mt-3 p-2 text-sm text-center rounded-md ${notification.type === 'success' ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'}`}>
-                        {notification.message}
-                    </div>
+                    <div className={`mt-3 p-2 text-sm text-center rounded-md ${notification.type === 'success' ? 'bg-green-800 text-green-200' : 'bg-red-800 text-red-200'}`}>{notification.message}</div>
                 )}
             </div>
         </div>
@@ -260,9 +266,7 @@ const CreateHabitModal: React.FC<{ onClose: () => void; onHabitCreated: (habit: 
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data.message || 'Error al crear el hábito.');
-          
           onHabitCreated(data.habit);
-
       } catch (err) {
           setError(err instanceof Error ? err.message : 'Error desconocido.');
       } finally {
@@ -287,8 +291,8 @@ const CreateHabitModal: React.FC<{ onClose: () => void; onHabitCreated: (habit: 
                   <div>
                       <label htmlFor="tipo" className="block text-sm font-medium text-gray-300">Tipo de Hábito</label>
                       <select id="tipo" value={newHabit.tipo} onChange={(e) => setNewHabit({...newHabit, tipo: e.target.value as NewHabit['tipo']})} className="w-full mt-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md">
-                          <option value="SI_NO">Sí / No (ej. Meditar)</option>
-                          <option value="MEDIBLE_NUMERICO">Medible (ej. Leer páginas)</option>
+                          <option value="SI_NO">Hábito de Sí / No (ej. Meditar)</option>
+                          <option value="MEDIBLE_NUMERICO">Hábito Medible (ej. Leer páginas)</option>
                           <option value="MAL_HABITO">Dejar un Mal Hábito (ej. Dejar de fumar)</option>
                       </select>
                   </div>

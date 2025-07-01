@@ -3,19 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
-
-// --- PASO 1: Importar AMBOS validadores de autenticación ---
 import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
 import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
 
-
-// Esquema para validar los parámetros de entrada (sin cambios)
 const schema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
   month: z.coerce.number().int().min(1).max(12),
 });
 
-// --- Interfaces (sin cambios) ---
 interface ActivityLogFromDB extends Row {
     fecha_registro: string;
     completados: number;
@@ -28,24 +23,19 @@ interface DailyActivity {
 }
 
 export async function GET(request: NextRequest) {
-    // --- PASO 2: Implementar la lógica de autenticación DUAL ---
     let authResult;
     if (request.headers.has('Authorization')) {
-      // Si la cabecera existe, es una petición de API móvil (Flutter)
       authResult = await verifyApiToken(request);
     } else {
-      // Si no, es una petición web con cookie de sesión
       authResult = await getAuthenticatedUser(request);
     }
 
-    // Si la autenticación falla, por cualquier método...
     if (!authResult.success) {
       const errorResponse = request.headers.has('Authorization')
         ? createApiTokenError(authResult)
         : createWebAuthError(authResult);
       return errorResponse;
     }
-    // --- FIN DE LOS CAMBIOS DE AUTENTICACIÓN ---
     
     const userId = authResult.user.id;
 
@@ -66,16 +56,17 @@ export async function GET(request: NextRequest) {
     const endDateStr = `${year}-${String(month).padStart(2, '0')}-${endDate}`;
 
     try {
+        // --- CONSULTA SQL CORREGIDA ---
+        // Se elimina la referencia a 'es_recaida'. Un registro para un MAL_HABITO es una recaída.
         const activityRs = await query({
             sql: `
                 SELECT
                     r.fecha_registro,
                     CAST(SUM(CASE
-                        WHEN h.tipo = 'SI_NO' AND r.valor_booleano = 1 THEN 1
-                        WHEN h.tipo = 'MEDIBLE_NUMERICO' AND r.valor_numerico IS NOT NULL THEN 1
+                        WHEN h.tipo IN ('SI_NO', 'MEDIBLE_NUMERICO') AND (r.valor_booleano = 1 OR r.valor_numerico IS NOT NULL) THEN 1
                         ELSE 0
                     END) AS INTEGER) as completados,
-                    CAST(SUM(CASE WHEN h.tipo = 'MAL_HABITO' AND r.es_recaida = 1 THEN 1 ELSE 0 END) AS INTEGER) as recaidas
+                    CAST(SUM(CASE WHEN h.tipo = 'MAL_HABITO' THEN 1 ELSE 0 END) AS INTEGER) as recaidas
                 FROM registros_habitos r
                 JOIN habitos h ON r.habito_id = h.id
                 WHERE

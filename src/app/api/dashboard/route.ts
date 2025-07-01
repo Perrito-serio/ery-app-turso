@@ -2,18 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { Row } from '@libsql/client';
-
-// ===================================================================================
-// CAMBIO 1: Se importan AMBOS validadores de autenticación
-// ===================================================================================
-// Validador para la sesión web (NextAuth.js)
 import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils'; 
-// Validador para el token de la API (Flutter)
 import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth'; 
-// ===================================================================================
 
-
-// --- Interfaces (sin cambios) ---
+// --- Interfaces ---
 interface HabitFromDB extends Row {
   id: number;
   nombre: string;
@@ -27,7 +19,6 @@ interface HabitLogFromDB extends Row {
   habito_id: number;
   fecha_registro: string;
   valor_booleano: number | null;
-  es_recaida: number | null;
   valor_numerico: number | null;
 }
 
@@ -35,14 +26,13 @@ interface HabitWithStats extends HabitFromDB {
   racha_actual: number;
 }
 
-// --- Helper de Fecha (sin cambios) ---
+// --- Helpers de Fecha ---
 function parseDateAsLocal(dateString: string): Date {
     const dateOnly = dateString.split(' ')[0];
     const [year, month, day] = dateOnly.split('-').map(Number);
     return new Date(year, month - 1, day);
 }
 
-// --- Función de Ayuda para Rachas (sin cambios) ---
 function calculateConsecutiveDays(logs: HabitLogFromDB[]): number {
   let streak = 0;
   let today = new Date();
@@ -54,6 +44,7 @@ function calculateConsecutiveDays(logs: HabitLogFromDB[]): number {
 
   let currentDate = new Date(today);
   
+  // Si no se completó hoy, la racha empieza desde ayer.
   if (!logDates.has(currentDate.getTime())) {
       currentDate.setDate(currentDate.getDate() - 1);
   }
@@ -66,41 +57,23 @@ function calculateConsecutiveDays(logs: HabitLogFromDB[]): number {
   return streak;
 }
 
-
-// --- Función Principal del Endpoint (ACTUALIZADA) ---
+// --- Endpoint GET (Lógica de racha corregida) ---
 export async function GET(request: NextRequest) {
-
-  // ===================================================================================
-  // CAMBIO 2: Lógica de autenticación DUAL
-  // ===================================================================================
-  // Declaramos la variable que contendrá el resultado de la autenticación.
   let authResult;
-
-  // Verificamos si la petición tiene la cabecera 'Authorization'.
   if (request.headers.has('Authorization')) {
-    // Si la tiene, asumimos que es una petición de la API móvil (Flutter).
-    console.log("Detectada petición con token Bearer (móvil).");
     authResult = await verifyApiToken(request);
   } else {
-    // Si no la tiene, asumimos que es una petición de la aplicación web.
-    console.log("Detectada petición con cookie de sesión (web).");
     authResult = await getAuthenticatedUser(request);
   }
   
-  // Si la autenticación, sea cual sea, no fue exitosa...
   if (!authResult.success) {
-    // Devolvemos el error correspondiente al tipo de petición.
     const errorResponse = request.headers.has('Authorization') 
         ? createApiTokenError(authResult) 
         : createWebAuthError(authResult);
     return errorResponse;
   }
-  // ===================================================================================
 
-  // A partir de aquí, el código funciona igual que antes porque 'authResult'
-  // tiene el mismo formato, sin importar cómo se autenticó el usuario.
   const userId = authResult.user.id;
-  console.log(`Usuario autenticado ID: ${userId}, procediendo a obtener datos del dashboard.`);
 
   try {
     const habitsRs = await query({
@@ -117,7 +90,7 @@ export async function GET(request: NextRequest) {
     const placeholders = habitIds.map(() => '?').join(',');
 
     const logsRs = await query({
-      sql: `SELECT habito_id, fecha_registro, valor_booleano, valor_numerico, es_recaida FROM registros_habitos WHERE habito_id IN (${placeholders}) ORDER BY fecha_registro DESC`,
+      sql: `SELECT habito_id, fecha_registro, valor_booleano, valor_numerico FROM registros_habitos WHERE habito_id IN (${placeholders}) ORDER BY fecha_registro DESC`,
       args: habitIds
     });
     const logs = logsRs.rows as unknown as HabitLogFromDB[];
@@ -134,21 +107,29 @@ export async function GET(request: NextRequest) {
       const habitLogs = logsByHabitId.get(habit.id) || [];
       let racha_actual = 0;
 
+      // --- LÓGICA DE RACHA CORREGIDA ---
       if (habit.tipo === 'MAL_HABITO') {
-        const ultimaRecaida = habitLogs.find(log => log.es_recaida === 1);
-        const fechaInicioRacha = ultimaRecaida 
-            ? parseDateAsLocal(ultimaRecaida.fecha_registro) 
+        // La racha es el número de días desde la última recaída.
+        // Un registro en la tabla para un MAL_HABITO *es* una recaída.
+        const ultimaRecaidaLog = habitLogs[0]; // Los logs ya vienen ordenados por fecha DESC.
+        
+        const fechaInicioRacha = ultimaRecaidaLog 
+            ? parseDateAsLocal(ultimaRecaidaLog.fecha_registro) 
             : parseDateAsLocal(habit.fecha_creacion);
         
-        const end = new Date();
-        const start = fechaInicioRacha;
-        if (end.getFullYear() === start.getFullYear() && end.getMonth() === start.getMonth() && end.getDate() === start.getDate()) {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        // Si la última recaída fue hoy, la racha es 0.
+        if (hoy.getTime() === fechaInicioRacha.getTime()) {
             racha_actual = 0;
         } else {
-            const diffTime = Math.abs(end.getTime() - start.getTime());
+            // Calculamos la diferencia de días.
+            const diffTime = Math.abs(hoy.getTime() - fechaInicioRacha.getTime());
             racha_actual = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
-      } else {
+
+      } else { // Para SI_NO y MEDIBLE_NUMERICO
         racha_actual = calculateConsecutiveDays(habitLogs);
       }
       
