@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
 
     // Buscar usuario por email
     const userResult = await query({
-      sql: 'SELECT id, nombre, email FROM usuarios WHERE email = ? AND activo = 1',
-      args: [validEmail]
+      sql: 'SELECT id, nombre, email FROM usuarios WHERE email = ? AND estado = ?',
+      args: [validEmail, 'activo']
     });
     
     const user = userResult.rows[0] as any;
