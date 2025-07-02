@@ -85,12 +85,7 @@ export default function AdminStatsPage() {
       const userStatsPromises = activeUsers.slice(0, 20).map(async (user: any) => {
         try {
           const statsResponse = await fetch(
-            `/api/external/weekly-stats?user_id=${user.id}&week_start=${selectedWeek}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_KEY || 'demo-key'}`
-              }
-            }
+            `/api/admin/weekly-stats?user_id=${user.id}&week_start=${selectedWeek}`
           );
 
           if (statsResponse.ok) {
