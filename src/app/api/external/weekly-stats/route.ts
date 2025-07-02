@@ -4,6 +4,20 @@ import { query } from '@/lib/db';
 import { verifyApiKey } from '@/lib/apiKeyAuth';
 import { z } from 'zod';
 
+// --- Funciones auxiliares para manejo de fechas ---
+function parseDateAsLocal(dateString: string): Date {
+  const dateOnly = dateString.split(' ')[0];
+  const [year, month, day] = dateOnly.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function getLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Esquema de validación para los parámetros
 const weeklyStatsSchema = z.object({
   user_id: z.coerce.number().int().positive(),
@@ -177,8 +191,9 @@ export async function GET(request: NextRequest) {
         // Para malos hábitos, calcular días sin recaídas
         const lastRelapse = habitAllLogs.find(log => log.fecha_registro);
         if (lastRelapse) {
-          const lastRelapseDate = new Date(lastRelapse.fecha_registro);
+          const lastRelapseDate = parseDateAsLocal(lastRelapse.fecha_registro);
           const today = new Date();
+          today.setHours(0, 0, 0, 0);
           const diffTime = today.getTime() - lastRelapseDate.getTime();
           currentStreak = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         } else {
@@ -204,7 +219,7 @@ export async function GET(request: NextRequest) {
         }
         
         const completedDates = new Set(
-          completedLogs.map(log => new Date(log.fecha_registro).getTime())
+          completedLogs.map(log => parseDateAsLocal(log.fecha_registro).getTime())
         );
 
         let currentDate = new Date(today);

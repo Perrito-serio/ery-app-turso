@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback, FormEvent, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/MainLayout';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 
@@ -180,6 +180,7 @@ const HabitList: React.FC<{ habits: Habit[]; onHabitDelete: (habit: Habit) => vo
 
 // --- Componente para la tarjeta de cada hábito (Lógica de registro corregida) ---
 const HabitCard: React.FC<{ habit: Habit; onDeleteClick: () => void; }> = ({ habit, onDeleteClick }) => {
+    const router = useRouter();
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error'; } | null>(null);
 
     const showNotification = (message: string, type: 'success' | 'error') => {
@@ -235,7 +236,18 @@ const HabitCard: React.FC<{ habit: Habit; onDeleteClick: () => void; }> = ({ hab
             <div>
                 <h3 className="text-lg font-bold text-white pr-8">{habit.nombre}</h3>
                 <p className="text-sm text-gray-400 mt-1">{habit.descripcion || 'Sin descripción'}</p>
-                <p className="text-xs text-indigo-400 mt-2 font-mono">{habit.tipo.replace('_', ' ')}</p>
+                <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-indigo-400 font-mono">{habit.tipo.replace('_', ' ')}</p>
+                    <button
+                        onClick={() => router.push(`/habits/${habit.id}`)}
+                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                    >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Ver estadísticas
+                    </button>
+                </div>
             </div>
             <div className="mt-4">
                 <p className="text-sm text-gray-400">Registrar progreso para hoy ({localToday.toLocaleDateString()}):</p>
