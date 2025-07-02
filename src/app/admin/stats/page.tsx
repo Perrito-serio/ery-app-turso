@@ -118,8 +118,13 @@ export default function AdminStatsPage() {
       const userStatsResults = await Promise.all(userStatsPromises);
       const validUserStats = userStatsResults.filter(stat => stat !== null) as UserStats[];
 
-      // Calcular estadísticas globales
-      const totalHabitsCreated = validUserStats.reduce((sum, stat) => sum + stat.total_habits, 0);
+      // Obtener estadísticas generales del sistema
+      const systemStatsResponse = await fetch('/api/admin/stats');
+      let totalHabitsCreated = 0;
+      if (systemStatsResponse.ok) {
+        const systemStats = await systemStatsResponse.json();
+        totalHabitsCreated = systemStats.total_habits;
+      }
       const averageSuccessRate = validUserStats.length > 0 
         ? Math.round(validUserStats.reduce((sum, stat) => sum + stat.success_percentage, 0) / validUserStats.length)
         : 0;
@@ -244,9 +249,9 @@ export default function AdminStatsPage() {
                 <p className="text-sm text-gray-400">{globalStats.active_users} activos</p>
               </div>
               <div className="bg-gray-800 p-6 rounded-lg">
-                <h3 className="text-lg font-medium text-green-400 mb-2">Hábitos Creados</h3>
+                <h3 className="text-lg font-medium text-green-400 mb-2">Total Hábitos</h3>
                 <p className="text-3xl font-bold">{globalStats.total_habits_created}</p>
-                <p className="text-sm text-gray-400">Esta semana</p>
+                <p className="text-sm text-gray-400">En el sistema</p>
               </div>
               <div className="bg-gray-800 p-6 rounded-lg">
                 <h3 className="text-lg font-medium text-yellow-400 mb-2">Tasa de Éxito Promedio</h3>
