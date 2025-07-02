@@ -33,6 +33,18 @@ function parseDateAsLocal(dateString: string): Date {
     return new Date(year, month - 1, day);
 }
 
+function calculateDaysBetween(startDate: Date, endDate: Date): number {
+    // Se crea una nueva fecha solo con año, mes y día, reseteando la hora a medianoche.
+    const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    
+    // Ahora, la diferencia entre el 2 de julio a medianoche y el 2 de julio a medianoche es exactamente 0.
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    
+    // Al dividir 0 entre (milisegundos en un día), el resultado es correctamente 0.
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+}
+
 function calculateConsecutiveDays(logs: HabitLogFromDB[]): number {
   let streak = 0;
   let today = new Date();
@@ -125,9 +137,9 @@ export async function GET(request: NextRequest) {
         if (fechaInicioRacha >= hoy) {
             racha_actual = 0;
         } else {
-            // Calculamos la diferencia de días entre hoy y la última recaída.
-            const diffTime = Math.abs(hoy.getTime() - fechaInicioRacha.getTime());
-            racha_actual = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            // Utilizamos la función calculateDaysBetween para calcular los días entre fechas
+            // ignorando las horas, minutos y segundos
+            racha_actual = calculateDaysBetween(fechaInicioRacha, hoy);
         }
 
       } else { // Para SI_NO y MEDIBLE_NUMERICO
