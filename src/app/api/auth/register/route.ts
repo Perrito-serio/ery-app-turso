@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
 const registerSchema = z.object({
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     requestBody = await request.json();
   } catch (error) {
-    return NextResponse.json({ message: 'Cuerpo de la solicitud JSON inválido.' }, { status: 400 });
+    return NextResponse.json({ success: false, message: 'Cuerpo de la solicitud JSON inválido.' }, { status: 400 });
   }
 
   const validation = registerSchema.safeParse(requestBody);
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
   if (!validation.success) {
     return NextResponse.json(
       { 
+        success: false,
         message: "Datos de entrada inválidos.",
         errors: validation.error.flatten().fieldErrors 
       }, 
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
         args: [trimmedEmail]
     });
     if (existingUserRs.rows.length > 0) {
-      return NextResponse.json({ message: 'El correo electrónico ya está registrado.' }, { status: 409 });
+      return NextResponse.json({ success: false, message: 'El correo electrónico ya está registrado.' }, { status: 409 });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -110,23 +112,49 @@ export async function POST(request: NextRequest) {
         console.error(`Error al asignar rol por defecto al usuario ID ${newUserId}:`, roleError);
       }
 
-      const newUser = {
+      // Obtener los roles del usuario recién creado
+      const rolesRs = await query({
+        sql: `SELECT r.nombre_rol FROM roles r JOIN usuario_roles ur ON r.id = ur.rol_id WHERE ur.usuario_id = ?`,
+        args: [newUserId],
+      });
+      const userRoles = rolesRs.rows.map(r => (r as unknown as { nombre_rol: string }).nombre_rol);
+
+      // Crear payload para el token JWT
+      const tokenPayload = {
         id: String(newUserId),
-        nombre: trimmedNombre,
+        name: trimmedNombre,
         email: trimmedEmail,
+        roles: userRoles,
+        role: userRoles.length > 0 ? userRoles[0] : 'usuario_estandar',
       };
-      return NextResponse.json({ message: 'Usuario registrado exitosamente.', user: newUser }, { status: 201 });
+      
+      // Generar token JWT
+      const token = jwt.sign(tokenPayload, process.env.NEXTAUTH_SECRET!, {
+        expiresIn: '30d',
+      });
+
+      // Devolver respuesta con la misma estructura que el endpoint de token
+      return NextResponse.json({
+        success: true,
+        token: token,
+        user: {
+          id: String(newUserId),
+          name: trimmedNombre,
+          email: trimmedEmail,
+          roles: userRoles,
+        },
+      }, { status: 201 });
     } else {
       console.error('Fallo al insertar usuario, resultado:', result);
-      return NextResponse.json({ message: 'Error al registrar el usuario.' }, { status: 500 });
+      return NextResponse.json({ success: false, message: 'Error al registrar el usuario.' }, { status: 500 });
     }
 
   } catch (error) {
     const typedError = error as { message?: string; code?: string; };
     console.error('Error en /api/auth/register:', error);
     if (typedError.code === 'SQLITE_CONSTRAINT') {
-        return NextResponse.json({ message: 'El correo electrónico ya está registrado (error de BD).' }, { status: 409 });
+        return NextResponse.json({ success: false, message: 'El correo electrónico ya está registrado (error de BD).' }, { status: 409 });
     }
-    return NextResponse.json({ message: 'Error interno del servidor.', errorDetails: typedError.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Error interno del servidor.', errorDetails: typedError.message }, { status: 500 });
   }
 }
