@@ -25,7 +25,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener y validar datos del body
-    const body = await request.json();
+    let body;
+    try {
+      const rawBody = await request.text();
+      console.log('Raw body received:', rawBody);
+      
+      if (!rawBody || rawBody.trim() === '') {
+        return NextResponse.json(
+          { error: 'Body de la petición está vacío' },
+          { status: 400 }
+        );
+      }
+      
+      body = JSON.parse(rawBody);
+      console.log('Parsed body:', body);
+    } catch (parseError) {
+      console.error('Error parsing JSON:', parseError);
+      return NextResponse.json(
+        { error: 'Body de la petición no es un JSON válido' },
+        { status: 400 }
+      );
+    }
+    
     const validation = logHabitSchema.safeParse(body);
     
     if (!validation.success) {
