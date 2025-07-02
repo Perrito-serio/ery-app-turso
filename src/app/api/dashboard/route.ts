@@ -120,11 +120,12 @@ export async function GET(request: NextRequest) {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
-        // Si la última recaída fue hoy, la racha es 0.
-        if (hoy.getTime() === fechaInicioRacha.getTime()) {
+        // Si la última recaída fue hoy o es una fecha futura (lo cual no debería ocurrir),
+        // la racha es 0.
+        if (fechaInicioRacha >= hoy) {
             racha_actual = 0;
         } else {
-            // Calculamos la diferencia de días.
+            // Calculamos la diferencia de días entre hoy y la última recaída.
             const diffTime = Math.abs(hoy.getTime() - fechaInicioRacha.getTime());
             racha_actual = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
