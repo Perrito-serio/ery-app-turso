@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
     // Buscar hábitos del usuario que coincidan con el hashtag
     // Buscamos en el nombre del hábito (case insensitive)
     const habitsResult = await query({
-      sql: `SELECT id, nombre, descripcion, tipo, activo 
+      sql: `SELECT id, nombre, descripcion, tipo 
             FROM habitos 
-            WHERE usuario_id = ? AND activo = 1 AND LOWER(nombre) LIKE ?
+            WHERE usuario_id = ? AND LOWER(nombre) LIKE ?
             ORDER BY nombre`,
       args: [user.id, `%${cleanHashtag}%`]
     });

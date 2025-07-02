@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
 
     // Buscar hábito que coincida con el hashtag
     const habitResult = await query({
-      sql: `SELECT id, nombre, descripcion, tipo, activo 
+      sql: `SELECT id, nombre, descripcion, tipo 
             FROM habitos 
-            WHERE usuario_id = ? AND activo = 1 AND LOWER(nombre) LIKE ?
+            WHERE usuario_id = ? AND LOWER(nombre) LIKE ?
             ORDER BY nombre LIMIT 1`,
       args: [user.id, `%${cleanHashtag}%`]
     });
