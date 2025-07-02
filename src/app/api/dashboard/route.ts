@@ -109,24 +109,22 @@ export async function GET(request: NextRequest) {
 
       // --- LÓGICA DE RACHA CORREGIDA ---
       if (habit.tipo === 'MAL_HABITO') {
-        // La racha es el número de días desde la última recaída.
-        // Un registro en la tabla para un MAL_HABITO *es* una recaída.
-        const ultimaRecaidaLog = habitLogs[0]; // Los logs ya vienen ordenados por fecha DESC.
-        
-        const fechaInicioRacha = ultimaRecaidaLog 
-            ? parseDateAsLocal(ultimaRecaidaLog.fecha_registro) 
-            : parseDateAsLocal(habit.fecha_creacion);
-        
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
-        // Si la última recaída fue hoy o es una fecha futura (lo cual no debería ocurrir),
-        // la racha es 0.
-        if (fechaInicioRacha >= hoy) {
+        const ultimaRecaidaLog = habitLogs[0]; // Los logs ya vienen ordenados por fecha DESC
+
+        // La fecha de referencia es la última recaída o, si no hay, la fecha de creación.
+        const fechaReferencia = ultimaRecaidaLog
+            ? parseDateAsLocal(ultimaRecaidaLog.fecha_registro)
+            : parseDateAsLocal(habit.fecha_creacion);
+
+        // Comprobamos explícitamente si la fecha de referencia es hoy.
+        if (fechaReferencia.getTime() === hoy.getTime()) {
             racha_actual = 0;
         } else {
-            // Calculamos la diferencia de días entre hoy y la última recaída.
-            const diffTime = Math.abs(hoy.getTime() - fechaInicioRacha.getTime());
+            // Si la recaída fue en un día anterior, calculamos la diferencia.
+            const diffTime = hoy.getTime() - fechaReferencia.getTime();
             racha_actual = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
 
