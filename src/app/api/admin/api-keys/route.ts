@@ -1,9 +1,11 @@
 // src/app/api/admin/api-keys/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
+import { verifyApiKey } from '@/lib/apiKeyAuth';
+import { verifyApiToken } from '@/lib/apiTokenAuth';
 import { query } from '@/lib/db';
+import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
-import { randomBytes, createHash } from 'crypto';
 
 interface ApiKeyInfo {
   id: number;
@@ -17,14 +19,41 @@ interface ApiKeyInfo {
  * Obtiene una lista de todas las claves de API (solo metadatos).
  */
 export async function GET(request: NextRequest) {
-  // 1. Autenticación y Autorización (Solo Admins)
-  const authResult = await getAuthenticatedUser(request);
-  if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+  // 1. Autenticación Dual (API Key o JWT Token)
+  const authHeader = request.headers.get('Authorization');
+  let isAuthenticated = false;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Primero intentar con API Key
+    const apiKeyResult = await verifyApiKey(request);
+    if (apiKeyResult.success) {
+      isAuthenticated = true;
+      console.log('Solicitud autenticada con API Key.');
+    } else {
+      // Si falla API Key, intentar con JWT Token
+      const jwtResult = await verifyApiToken(request);
+      if (jwtResult.success) {
+        // Verificar que el usuario tenga rol de administrador
+        if (!jwtResult.user.roles?.includes('administrador') && jwtResult.user.role !== 'administrador') {
+          return NextResponse.json({ error: 'Acceso denegado. Se requiere rol de administrador.' }, { status: 403 });
+        }
+        isAuthenticated = true;
+        console.log(`Usuario ${jwtResult.user.email} autenticado con JWT Token.`);
+      }
+    }
   }
-  const roleError = requireRoles(authResult.user, ['administrador']);
-  if (roleError) {
-    return createAuthErrorResponse(roleError);
+  
+  if (!isAuthenticated) {
+    // Fallback a autenticación de sesión NextAuth
+    const authResult = await getAuthenticatedUser(request);
+    if (!authResult.success) {
+      return createAuthErrorResponse(authResult);
+    }
+    
+    const roleError = requireRoles(authResult.user, ['administrador']);
+    if (roleError) {
+      return createAuthErrorResponse(roleError);
+    }
   }
 
   try {
@@ -54,16 +83,58 @@ const createApiKeySchema = z.object({
  * Crea una nueva clave de API para un administrador.
  */
 export async function POST(request: NextRequest) {
-  // 1. Autenticación y Autorización (Solo Admins)
-  const authResult = await getAuthenticatedUser(request);
-  if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+  // 1. Autenticación Dual (API Key o JWT Token)
+  const authHeader = request.headers.get('Authorization');
+  let isAuthenticated = false;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Primero intentar con API Key
+    const apiKeyResult = await verifyApiKey(request);
+    if (apiKeyResult.success) {
+      isAuthenticated = true;
+      console.log('Solicitud autenticada con API Key.');
+    } else {
+      // Si falla API Key, intentar con JWT Token
+      const jwtResult = await verifyApiToken(request);
+      if (jwtResult.success) {
+        // Verificar que el usuario tenga rol de administrador
+        if (!jwtResult.user.roles?.includes('administrador') && jwtResult.user.role !== 'administrador') {
+          return NextResponse.json({ error: 'Acceso denegado. Se requiere rol de administrador.' }, { status: 403 });
+        }
+        isAuthenticated = true;
+        console.log(`Usuario ${jwtResult.user.email} autenticado con JWT Token.`);
+      }
+    }
   }
-  const roleError = requireRoles(authResult.user, ['administrador']);
-  if (roleError) {
-    return createAuthErrorResponse(roleError);
+  
+  if (!isAuthenticated) {
+    // Fallback a autenticación de sesión NextAuth
+    const authResult = await getAuthenticatedUser(request);
+    if (!authResult.success) {
+      return createAuthErrorResponse(authResult);
+    }
+    
+    const roleError = requireRoles(authResult.user, ['administrador']);
+    if (roleError) {
+      return createAuthErrorResponse(roleError);
+    }
   }
-  const adminUserId = authResult.user.id;
+   
+   // Obtener el ID del usuario administrador (puede venir de JWT o sesión)
+   let adminUserId: string;
+   if (authHeader && authHeader.startsWith('Bearer ')) {
+     const jwtResult = await verifyApiToken(request);
+     if (jwtResult.success) {
+       adminUserId = jwtResult.user.id;
+     } else {
+       // Si llegamos aquí, fue autenticado con API Key, usar un ID genérico
+       adminUserId = 'system';
+     }
+   } else {
+     // Autenticación de sesión
+     const authResult = await getAuthenticatedUser(request);
+     adminUserId = authResult.success ? authResult.user.id : 'unknown';
+   }
 
   // 2. Validación del Body
   let body;
