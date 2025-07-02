@@ -6,6 +6,7 @@ import { query } from '@/lib/db';
 
 // --- INTERFAZ ACTUALIZADA ---
 // Refleja la nueva estructura de la base de datos con 'estado' y 'suspension_fin'
+// Incluye email para compatibilidad con n8n
 interface UserListData {
   id: number;
   nombre: string;
