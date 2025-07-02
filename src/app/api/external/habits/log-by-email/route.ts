@@ -82,6 +82,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Primero, obtener todos los hábitos del usuario para debugging
+    const allHabitsResult = await query({
+      sql: `SELECT id, nombre, descripcion, tipo FROM habitos WHERE usuario_id = ? ORDER BY nombre`,
+      args: [user.id]
+    });
+    
+    console.log('Todos los hábitos del usuario:', allHabitsResult.rows);
+    console.log('Buscando hashtag:', cleanHashtag);
+    
     // Buscar hábito que coincida con el hashtag
     const habitResult = await query({
       sql: `SELECT id, nombre, descripcion, tipo 
@@ -90,6 +99,8 @@ export async function POST(request: NextRequest) {
             ORDER BY nombre LIMIT 1`,
       args: [user.id, `%${cleanHashtag}%`]
     });
+    
+    console.log('Resultado de búsqueda de hábito:', habitResult.rows);
     
     const habit = habitResult.rows[0] as any;
 
@@ -102,7 +113,8 @@ export async function POST(request: NextRequest) {
             nombre: user.nombre,
             email: user.email
           },
-          searched_hashtag: cleanHashtag
+          searched_hashtag: cleanHashtag,
+          all_user_habits: allHabitsResult.rows.map((h: any) => ({ id: h.id, nombre: h.nombre, tipo: h.tipo }))
         },
         { status: 404 }
       );
