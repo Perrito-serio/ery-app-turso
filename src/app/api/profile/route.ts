@@ -3,6 +3,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { z } from 'zod';
+
+export async function GET(request: NextRequest) {
+  const authResult = await getAuthenticatedUser(request);
+  if (!authResult.success) {
+    return createAuthErrorResponse(authResult);
+  }
+
+  const userId = authResult.user.id;
+  if (!userId) {
+    return NextResponse.json({ message: 'No se pudo identificar al usuario desde la sesión.' }, { status: 401 });
+  }
+
+  try {
+    const userRs = await query({
+      sql: 'SELECT id, nombre, email, rol, fecha_creacion, ultimo_login, estado, suspension_fin FROM usuarios WHERE id = ?',
+      args: [parseInt(userId, 10)]
+    });
+
+    if (userRs.rows.length === 0) {
+      return NextResponse.json({ message: 'Usuario no encontrado.' }, { status: 404 });
+    }
+
+    const userProfile = userRs.rows[0];
+
+    return NextResponse.json(userProfile);
+
+  } catch (error) {
+    console.error(`Error al obtener el perfil del usuario ID ${userId}:`, error);
+    return NextResponse.json({ message: 'Error interno del servidor al obtener el perfil.' }, { status: 500 });
+  }
+}
 import bcrypt from 'bcryptjs';
 
 // Esquema de validación con Zod (sin cambios)
