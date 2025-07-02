@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         // Para malos hábitos, registrar como "no completado" (0)
         logResult = await query({
           sql: `INSERT OR REPLACE INTO registros_habitos 
-                (habito_id, fecha_registro, completado, notas, fecha_creacion)
+                (habito_id, fecha_registro, valor_booleano, notas, fecha_creacion)
                 VALUES (?, ?, 0, ?, datetime('now'))`,
           args: [habit.id, registrationDate, notas || 'Registrado vía email']
         });
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         // Para hábitos sí/no, registrar como completado (1)
         logResult = await query({
           sql: `INSERT OR REPLACE INTO registros_habitos 
-                (habito_id, fecha_registro, completado, notas, fecha_creacion)
+                (habito_id, fecha_registro, valor_booleano, notas, fecha_creacion)
                 VALUES (?, ?, 1, ?, datetime('now'))`,
           args: [habit.id, registrationDate, notas || 'Registrado vía email']
         });
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
 
     // Obtener información del registro creado para la respuesta
     const createdLogResult = await query({
-      sql: `SELECT id, habito_id, fecha_registro, completado, valor_numerico, notas, fecha_creacion
+      sql: `SELECT id, habito_id, fecha_registro, valor_booleano, valor_numerico, notas, fecha_creacion
             FROM registros_habitos 
             WHERE habito_id = ? AND fecha_registro = ?`,
       args: [habit.id, registrationDate]
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
          h.nombre,
          h.descripcion,
          h.tipo,
-         rh.completado,
+         rh.valor_booleano,
          rh.valor_numerico,
          rh.notas,
          rh.fecha_creacion as fecha_registro_creacion
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
       },
       registro: {
         fecha_registro: registrationDate,
-        completado: updatedHabit?.completado || null,
+        valor_booleano: updatedHabit?.valor_booleano || null,
         valor_numerico: updatedHabit?.valor_numerico || null,
         notas: updatedHabit?.notas || null
       },
