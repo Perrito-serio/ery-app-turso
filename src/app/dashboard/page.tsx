@@ -87,11 +87,12 @@ export default function DashboardPage() {
               </p>
               <Link href="/admin/achievements" className="text-yellow-400 hover:underline mt-4 inline-block font-semibold">Ir a Gestión de Logros &rarr;</Link>
             </div>
-            <div className="bg-gray-700 p-6 rounded-lg shadow-md opacity-50">
+            <div className="bg-gray-700 p-6 rounded-lg shadow-md hover:bg-gray-600 transition-colors">
               <h3 className="text-lg font-medium text-green-400 mb-2">Estadísticas Globales</h3>
               <p className="text-gray-300">
-                Visualizar estadísticas de uso de la aplicación. (Próximamente)
+                Visualizar estadísticas semanales, rendimiento de usuarios y métricas de la aplicación.
               </p>
+              <Link href="/admin/stats" className="text-green-400 hover:underline mt-4 inline-block font-semibold">Ir a Estadísticas Globales &rarr;</Link>
             </div>
         </div>
       </div>
