@@ -2,10 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { Row } from '@libsql/client';
-import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
-import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils'; 
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth'; 
 
-// --- Interfaces (sin cambios) ---
+// --- Interfaces ---
 interface HabitFromDB extends Row {
   id: number;
   nombre: string;
@@ -26,56 +26,49 @@ interface HabitWithStats extends HabitFromDB {
   racha_actual: number;
 }
 
-// --- Helpers de Fecha (con nueva función) ---
+// --- Helpers de Fecha ---
 function parseDateAsLocal(dateString: string): Date {
     const dateOnly = dateString.split(' ')[0];
     const [year, month, day] = dateOnly.split('-').map(Number);
     return new Date(year, month - 1, day);
 }
 
-// --- INICIO DE LA MODIFICACIÓN 1: NUEVA FUNCIÓN HELPER ---
-/**
- * Obtiene la fecha actual al inicio del día (medianoche) en UTC.
- * Esto evita problemas de zona horaria en el servidor.
- */
-function getTodayAtUTCMidnight(): Date {
-    const today = new Date();
-    // Crea una nueva fecha usando los componentes UTC de la fecha actual
-    return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-}
-// --- FIN DE LA MODIFICACIÓN 1 ---
-
 function calculateConsecutiveDays(logs: HabitLogFromDB[]): number {
-    let streak = 0;
-    // --- MODIFICACIÓN 2: Usar la nueva función para consistencia ---
-    let today = getTodayAtUTCMidnight();
-    // --- FIN DE LA MODIFICACIÓN 2 ---
+  let streak = 0;
+  let today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    const logDates = new Set(logs.filter(log => log.valor_booleano === 1 || log.valor_numerico != null).map(log => {
-        return parseDateAsLocal(log.fecha_registro).getTime();
-    }));
+  const logDates = new Set(logs.filter(log => log.valor_booleano === 1 || log.valor_numerico != null).map(log => {
+      return parseDateAsLocal(log.fecha_registro).getTime();
+  }));
 
-    let currentDate = new Date(today);
-    
-    if (!logDates.has(currentDate.getTime())) {
-        currentDate.setDate(currentDate.getDate() - 1);
-    }
+  let currentDate = new Date(today);
+  
+  // Si no se completó hoy, la racha empieza desde ayer.
+  if (!logDates.has(currentDate.getTime())) {
+      currentDate.setDate(currentDate.getDate() - 1);
+  }
 
-    while (logDates.has(currentDate.getTime())) {
-        streak++;
-        currentDate.setDate(currentDate.getDate() - 1);
-    }
-    
-    return streak;
+  while (logDates.has(currentDate.getTime())) {
+    streak++;
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+  
+  return streak;
 }
 
 // --- Endpoint GET (Lógica de racha corregida) ---
 export async function GET(request: NextRequest) {
-  const authResult = await getAuthenticatedUser(request);
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
+  }
   
   if (!authResult.success) {
-    const errorResponse = request.headers.has('Authorization')
-        ? createApiTokenError(authResult)
+    const errorResponse = request.headers.has('Authorization') 
+        ? createApiTokenError(authResult) 
         : createWebAuthError(authResult);
     return errorResponse;
   }
@@ -83,7 +76,6 @@ export async function GET(request: NextRequest) {
   const userId = authResult.user.id;
 
   try {
-    // ... (el código para obtener hábitos y registros no cambia) ...
     const habitsRs = await query({
       sql: `SELECT * FROM habitos WHERE usuario_id = ?`,
       args: [userId]
@@ -115,25 +107,30 @@ export async function GET(request: NextRequest) {
       const habitLogs = logsByHabitId.get(habit.id) || [];
       let racha_actual = 0;
 
+      // --- LÓGICA DE RACHA CORREGIDA ---
       if (habit.tipo === 'MAL_HABITO') {
-        // --- INICIO DE LA MODIFICACIÓN 3: Usar la nueva función de fecha ---
-        const hoy = getTodayAtUTCMidnight();
-        // --- FIN DE LA MODIFICACIÓN 3 ---
-
-        const ultimaRecaidaLog = habitLogs[0];
-
-        const fechaReferencia = ultimaRecaidaLog
-            ? parseDateAsLocal(ultimaRecaidaLog.fecha_registro)
+        // La racha es el número de días desde la última recaída.
+        // Un registro en la tabla para un MAL_HABITO *es* una recaída.
+        const ultimaRecaidaLog = habitLogs[0]; // Los logs ya vienen ordenados por fecha DESC.
+        
+        const fechaInicioRacha = ultimaRecaidaLog 
+            ? parseDateAsLocal(ultimaRecaidaLog.fecha_registro) 
             : parseDateAsLocal(habit.fecha_creacion);
+        
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
 
-        if (fechaReferencia.getTime() >= hoy.getTime()) {
+        // Si la última recaída fue hoy o es una fecha futura (lo cual no debería ocurrir),
+        // la racha es 0.
+        if (fechaInicioRacha >= hoy) {
             racha_actual = 0;
         } else {
-            const diffTime = hoy.getTime() - fechaReferencia.getTime();
+            // Calculamos la diferencia de días entre hoy y la última recaída.
+            const diffTime = Math.abs(hoy.getTime() - fechaInicioRacha.getTime());
             racha_actual = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
 
-      } else {
+      } else { // Para SI_NO y MEDIBLE_NUMERICO
         racha_actual = calculateConsecutiveDays(habitLogs);
       }
       
