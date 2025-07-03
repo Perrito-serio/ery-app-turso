@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Solicitud de amistad enviada correctamente',
-      invitation_id: result.lastInsertRowid
+      invitation_id: Number(result.lastInsertRowid)
     });
 
   } catch (error) {
