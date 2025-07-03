@@ -14,17 +14,20 @@ Puedes actualizar este archivo con la estructura completa de las tablas para que
 
 ```sql
 -- ------------------------------------------------------------------
--- Tabla: paises
+-- Script completo y ordenado para la creación de la base de datos
 -- ------------------------------------------------------------------
+
+-- ------------------------------------------------------------------
+-- SECCIÓN 1: Tablas Fundamentales (Ubicación y Usuarios)
+-- Estas tablas deben crearse primero ya que otras dependen de ellas.
+-- ------------------------------------------------------------------
+
 CREATE TABLE IF NOT EXISTS paises (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL UNIQUE,
     codigo TEXT NOT NULL UNIQUE
 );
 
--- ------------------------------------------------------------------
--- Tabla: ciudades
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ciudades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
@@ -32,9 +35,6 @@ CREATE TABLE IF NOT EXISTS ciudades (
     FOREIGN KEY (pais_id) REFERENCES paises(id) ON DELETE CASCADE
 );
 
--- ------------------------------------------------------------------
--- Tabla: usuarios
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
@@ -59,8 +59,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 -- ------------------------------------------------------------------
--- Tabla: roles
+-- SECCIÓN 2: Sistema de Roles y Permisos
 -- ------------------------------------------------------------------
+
 CREATE TABLE IF NOT EXISTS roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre_rol TEXT NOT NULL UNIQUE,
@@ -68,9 +69,6 @@ CREATE TABLE IF NOT EXISTS roles (
     fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ------------------------------------------------------------------
--- Tabla: permisos
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS permisos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre_permiso TEXT NOT NULL UNIQUE,
@@ -79,9 +77,6 @@ CREATE TABLE IF NOT EXISTS permisos (
     fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- ------------------------------------------------------------------
--- Tabla: usuario_roles
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS usuario_roles (
     usuario_id INTEGER NOT NULL,
     rol_id INTEGER NOT NULL,
@@ -91,9 +86,6 @@ CREATE TABLE IF NOT EXISTS usuario_roles (
     FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE CASCADE
 );
 
--- ------------------------------------------------------------------
--- Tabla: rol_permisos
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS rol_permisos (
     rol_id INTEGER NOT NULL,
     permiso_id INTEGER NOT NULL,
@@ -103,8 +95,9 @@ CREATE TABLE IF NOT EXISTS rol_permisos (
 );
 
 -- ------------------------------------------------------------------
--- Tabla: habitos (estructura final unificada)
+-- SECCIÓN 3: Funcionalidades Principales (Hábitos y Rutinas)
 -- ------------------------------------------------------------------
+
 CREATE TABLE IF NOT EXISTS habitos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     usuario_id INTEGER NOT NULL,
@@ -116,9 +109,6 @@ CREATE TABLE IF NOT EXISTS habitos (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
--- ------------------------------------------------------------------
--- Tabla: registros_habitos
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS registros_habitos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     habito_id INTEGER NOT NULL,
@@ -131,9 +121,6 @@ CREATE TABLE IF NOT EXISTS registros_habitos (
     FOREIGN KEY (habito_id) REFERENCES habitos(id) ON DELETE CASCADE
 );
 
--- ------------------------------------------------------------------
--- Tabla: rutinas
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS rutinas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     usuario_id INTEGER NOT NULL,
@@ -143,9 +130,6 @@ CREATE TABLE IF NOT EXISTS rutinas (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
--- ------------------------------------------------------------------
--- Tabla: rutina_habitos
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS rutina_habitos (
     rutina_id INTEGER NOT NULL,
     habito_id INTEGER NOT NULL,
@@ -155,17 +139,15 @@ CREATE TABLE IF NOT EXISTS rutina_habitos (
 );
 
 -- ------------------------------------------------------------------
--- Tabla: logros_criterios
+-- SECCIÓN 4: Sistema de Gamificación (Logros)
 -- ------------------------------------------------------------------
+
 CREATE TABLE IF NOT EXISTS logros_criterios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     criterio_codigo TEXT NOT NULL UNIQUE,
     descripcion TEXT NOT NULL
 );
 
--- ------------------------------------------------------------------
--- Tabla: logros
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS logros (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
@@ -176,9 +158,6 @@ CREATE TABLE IF NOT EXISTS logros (
     FOREIGN KEY (criterio_id) REFERENCES logros_criterios(id) ON DELETE CASCADE
 );
 
--- ------------------------------------------------------------------
--- Tabla: usuario_logros
--- ------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS usuario_logros (
     usuario_id INTEGER NOT NULL,
     logro_id INTEGER NOT NULL,
@@ -189,56 +168,8 @@ CREATE TABLE IF NOT EXISTS usuario_logros (
 );
 
 -- ------------------------------------------------------------------
--- Tabla: api_keys
+-- SECCIÓN 5: Funcionalidades Sociales (Amigos y Competencias)
 -- ------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS api_keys (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    key_hash TEXT NOT NULL UNIQUE,
-    nombre TEXT NOT NULL,
-    usuario_id INTEGER NOT NULL,
-    fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    ultimo_uso TEXT NULL,
-    revokada INTEGER DEFAULT 0,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
--- ------------------------------------------------------------------
--- INDICES DE RENDIMIENTO
--- ------------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_habitos_usuario_id ON habitos(usuario_id);
-CREATE INDEX IF NOT EXISTS idx_registros_habito_fecha ON registros_habitos(habito_id, fecha_registro);
-CREATE INDEX IF NOT EXISTS idx_rutinas_usuario_id ON rutinas(usuario_id);
-CREATE INDEX IF NOT EXISTS idx_usuarios_pais_id ON usuarios(pais_id);
-CREATE INDEX IF NOT EXISTS idx_ciudades_pais_id ON ciudades(pais_id);
-
--- Tablas integradas:
-CREATE TABLE competencias (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    creador_id INTEGER NOT NULL,
-    nombre TEXT NOT NULL,
-    descripcion TEXT,
-    tipo_meta TEXT NOT NULL CHECK(tipo_meta IN ('MAX_HABITOS_DIA', 'MAX_RACHA', 'TOTAL_COMPLETADOS')),
-    fecha_inicio TEXT NOT NULL,
-    fecha_fin TEXT NOT NULL,
-    estado TEXT NOT NULL DEFAULT 'activa' CHECK(estado IN ('activa', 'finalizada', 'cancelada')),
-    fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (creador_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
-CREATE TABLE competencia_participantes (
-    competencia_id INTEGER NOT NULL,
-    usuario_id INTEGER NOT NULL,
-    puntuacion INTEGER DEFAULT 0,
-    fecha_union TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (competencia_id, usuario_id),
-    FOREIGN KEY (competencia_id) REFERENCES competencias(id) ON DELETE CASCADE,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_competencias_creador_id ON competencias(creador_id);
-CREATE INDEX IF NOT EXISTS idx_competencias_estado ON competencias(estado);
-CREATE INDEX IF NOT EXISTS idx_competencia_participantes_puntuacion ON competencia_participantes(competencia_id, puntuacion DESC);
-
 
 CREATE TABLE IF NOT EXISTS invitaciones_amistad (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -260,8 +191,65 @@ CREATE TABLE IF NOT EXISTS amistades (
     FOREIGN KEY (usuario_id_2) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS competencias (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    creador_id INTEGER NOT NULL,
+    nombre TEXT NOT NULL,
+    descripcion TEXT,
+    tipo_meta TEXT NOT NULL CHECK(tipo_meta IN ('MAX_HABITOS_DIA', 'MAX_RACHA', 'TOTAL_COMPLETADOS')),
+    fecha_inicio TEXT NOT NULL,
+    fecha_fin TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'activa' CHECK(estado IN ('activa', 'finalizada', 'cancelada')),
+    fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (creador_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS competencia_participantes (
+    competencia_id INTEGER NOT NULL,
+    usuario_id INTEGER NOT NULL,
+    puntuacion INTEGER DEFAULT 0,
+    fecha_union TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (competencia_id, usuario_id),
+    FOREIGN KEY (competencia_id) REFERENCES competencias(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+-- ------------------------------------------------------------------
+-- SECCIÓN 6: Sistema y Administración (API Keys)
+-- ------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key_hash TEXT NOT NULL UNIQUE,
+    nombre TEXT NOT NULL,
+    usuario_id INTEGER NOT NULL,
+    fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ultimo_uso TEXT NULL,
+    revokada INTEGER DEFAULT 0,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+-- ------------------------------------------------------------------
+-- SECCIÓN 7: Modificaciones de Tablas (ALTER TABLE)
+-- Se ejecutan después de la creación de las tablas base.
+-- ------------------------------------------------------------------
+
 ALTER TABLE competencias ADD COLUMN meta_objetivo INTEGER;
 ALTER TABLE competencias ADD COLUMN valor REAL;
+
+-- ------------------------------------------------------------------
+-- SECCIÓN 8: Índices de Rendimiento
+-- Se crean al final para optimizar las consultas.
+-- ------------------------------------------------------------------
+
+CREATE INDEX IF NOT EXISTS idx_habitos_usuario_id ON habitos(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_registros_habito_fecha ON registros_habitos(habito_id, fecha_registro);
+CREATE INDEX IF NOT EXISTS idx_rutinas_usuario_id ON rutinas(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_usuarios_pais_id ON usuarios(pais_id);
+CREATE INDEX IF NOT EXISTS idx_ciudades_pais_id ON ciudades(pais_id);
+CREATE INDEX IF NOT EXISTS idx_competencias_creador_id ON competencias(creador_id);
+CREATE INDEX IF NOT EXISTS idx_competencias_estado ON competencias(estado);
+CREATE INDEX IF NOT EXISTS idx_competencia_participantes_puntuacion ON competencia_participantes(competencia_id, puntuacion DESC);
 ```
 
 ## Notas
