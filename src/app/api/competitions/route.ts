@@ -105,9 +105,9 @@ export async function POST(request: NextRequest) {
 
     // Agregar al creador como participante automáticamente
     await query({
-      sql: `INSERT INTO competencia_participantes (competencia_id, usuario_id)
-             VALUES (?, ?)`,
-      args: [competitionId, userId]
+      sql: `INSERT INTO competencia_participantes (competencia_id, usuario_id, puntuacion, fecha_union)
+             VALUES (?, ?, ?, datetime('now'))`,
+      args: [competitionId, userId, 0]
     });
 
     return NextResponse.json({

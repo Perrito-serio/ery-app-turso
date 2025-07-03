@@ -52,8 +52,7 @@ async function getCompetitionForInvite(competitionId: number): Promise<Competiti
 async function areFriends(userId1: number, userId2: number): Promise<boolean> {
   const result = await query({
     sql: `SELECT 1 FROM amistades 
-          WHERE ((usuario_id = ? AND amigo_id = ?) OR (usuario_id = ? AND amigo_id = ?))
-            AND estado = 'aceptada'`,
+          WHERE (usuario_id_1 = ? AND usuario_id_2 = ?) OR (usuario_id_1 = ? AND usuario_id_2 = ?)`,
     args: [userId1, userId2, userId2, userId1]
   });
 
@@ -61,9 +60,12 @@ async function areFriends(userId1: number, userId2: number): Promise<boolean> {
 }
 
 async function isUserParticipant(competitionId: number, userId: number): Promise<boolean> {
+  // Verificar si es participante registrado o si es el creador de la competencia
   const result = await query({
-    sql: 'SELECT 1 FROM competencia_participantes WHERE competencia_id = ? AND usuario_id = ?',
-    args: [competitionId, userId]
+    sql: `SELECT 1 FROM competencia_participantes WHERE competencia_id = ? AND usuario_id = ?
+          UNION
+          SELECT 1 FROM competencias WHERE id = ? AND creador_id = ?`,
+    args: [competitionId, userId, competitionId, userId]
   });
 
   return result.rows.length > 0;

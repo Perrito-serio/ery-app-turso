@@ -135,7 +135,7 @@ const ManageCompetitionPage: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_ids: selectedFriends
+          friend_ids: selectedFriends
         }),
       });
 
