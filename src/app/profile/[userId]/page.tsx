@@ -28,6 +28,17 @@ interface FriendStats {
   longestStreak: number;
   totalAchievements: number;
   joinDate: string;
+  // Nuevos campos para estadísticas detalladas
+  goodHabitsCount: number;
+  addictionsCount: number;
+  bestGoodHabitStreak: number;
+  bestAddictionStreak: number;
+  habitsWithStats: Array<{
+    id: number;
+    nombre: string;
+    tipo: 'SI_NO' | 'MEDIBLE_NUMERICO' | 'MAL_HABITO';
+    racha_actual: number;
+  }>;
 }
 
 interface ProfilePageProps {
@@ -114,7 +125,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
         currentStreak: statsData.current_streak || 0,
         longestStreak: statsData.longest_streak || 0,
         totalAchievements: statsData.total_achievements || 0,
-        joinDate: joinDate.toLocaleDateString('es-ES')
+        joinDate: joinDate.toLocaleDateString('es-ES'),
+        // Nuevos campos
+        goodHabitsCount: statsData.good_habits_count || 0,
+        addictionsCount: statsData.addictions_count || 0,
+        bestGoodHabitStreak: statsData.best_good_habit_streak || 0,
+        bestAddictionStreak: statsData.best_addiction_streak || 0,
+        habitsWithStats: statsData.habits_with_stats || []
       });
 
     } catch (error) {
@@ -224,11 +241,81 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Resumen de Progreso Detallado */}
+        {stats && (
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg p-6">
+            <h2 className="text-xl font-semibold text-white mb-6">Resumen de Progreso</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="bg-gradient-to-br from-green-700 to-green-600 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-white">{stats.goodHabitsCount}</div>
+                <div className="text-sm text-green-100">Hábitos Positivos</div>
+              </div>
+              <div className="bg-gradient-to-br from-red-700 to-red-600 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-white">{stats.addictionsCount}</div>
+                <div className="text-sm text-red-100">Adicciones</div>
+              </div>
+              <div className="bg-gradient-to-br from-orange-700 to-orange-600 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-white">{stats.bestGoodHabitStreak}</div>
+                <div className="text-sm text-orange-100">Mejor racha (hábitos)</div>
+              </div>
+              <div className="bg-gradient-to-br from-purple-700 to-purple-600 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-white">{stats.bestAddictionStreak}</div>
+                <div className="text-sm text-purple-100">Mejor racha (adicciones)</div>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-700 to-yellow-600 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-white">{stats.totalAchievements}</div>
+                <div className="text-sm text-yellow-100">Logros desbloqueados</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Calendario de actividad */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Actividad de {friendProfile.nombre}</h2>
             <FriendActivityCalendar friendId={friendId} friendName={friendProfile.nombre} />
+          </div>
+
+          {/* Hábitos y Rachas */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Hábitos y Rachas</h2>
+            {stats && stats.habitsWithStats.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {stats.habitsWithStats.map((habit) => (
+                  <div key={habit.id} className={`p-4 rounded-lg border-l-4 ${
+                    habit.tipo === 'MAL_HABITO' 
+                      ? 'border-red-500 bg-red-50' 
+                      : 'border-green-500 bg-green-50'
+                  }`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium text-gray-900">{habit.nombre}</h3>
+                        <p className="text-sm text-gray-600">
+                          {habit.tipo === 'MAL_HABITO' ? 'Adicción' : 
+                           habit.tipo === 'SI_NO' ? 'Hábito Sí/No' : 'Hábito Medible'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-lg font-bold ${
+                          habit.tipo === 'MAL_HABITO' ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {habit.racha_actual}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {habit.tipo === 'MAL_HABITO' ? 'días sin recaída' : 'días consecutivos'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-gray-400 text-4xl mb-2">📊</div>
+                <p className="text-gray-600">No tiene hábitos registrados</p>
+              </div>
+            )}
           </div>
 
           {/* Logros recientes */}

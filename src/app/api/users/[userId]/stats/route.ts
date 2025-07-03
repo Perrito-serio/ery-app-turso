@@ -18,6 +18,17 @@ interface UserStatsResponse {
   current_streak: number;
   total_achievements: number;
   join_date: string;
+  // Nuevos campos para estadísticas detalladas
+  good_habits_count: number;
+  addictions_count: number;
+  best_good_habit_streak: number;
+  best_addiction_streak: number;
+  habits_with_stats: Array<{
+    id: number;
+    nombre: string;
+    tipo: 'SI_NO' | 'MEDIBLE_NUMERICO' | 'MAL_HABITO';
+    racha_actual: number;
+  }>;
 }
 
 /**
@@ -105,7 +116,13 @@ export async function GET(
         longest_streak: 0,
         current_streak: 0,
         total_achievements: totalAchievements,
-        join_date: user.fecha_creacion
+        join_date: user.fecha_creacion,
+        // Nuevos campos
+        good_habits_count: 0,
+        addictions_count: 0,
+        best_good_habit_streak: 0,
+        best_addiction_streak: 0,
+        habits_with_stats: []
       });
     }
 
@@ -134,6 +151,14 @@ export async function GET(
     let totalHabitsCompleted = 0;
     let longestStreak = 0;
     let currentStreakSum = 0;
+    let bestGoodHabitStreak = 0;
+    let bestAddictionStreak = 0;
+    const habitsWithStats: Array<{
+      id: number;
+      nombre: string;
+      tipo: 'SI_NO' | 'MEDIBLE_NUMERICO' | 'MAL_HABITO';
+      racha_actual: number;
+    }> = [];
 
     habits.forEach(habit => {
       const habitLogs = allLogs.filter(log => log.habito_id === habit.id);
@@ -242,6 +267,21 @@ export async function GET(
       
       currentStreakSum += currentStreak;
       longestStreak = Math.max(longestStreak, maxStreakForHabit);
+      
+      // Actualizar mejores rachas por tipo
+      if (habit.tipo === 'MAL_HABITO') {
+        bestAddictionStreak = Math.max(bestAddictionStreak, currentStreak);
+      } else {
+        bestGoodHabitStreak = Math.max(bestGoodHabitStreak, currentStreak);
+      }
+      
+      // Agregar hábito con estadísticas
+      habitsWithStats.push({
+        id: habit.id,
+        nombre: habit.nombre,
+        tipo: habit.tipo,
+        racha_actual: currentStreak
+      });
     });
 
     // Obtener logros
@@ -253,6 +293,10 @@ export async function GET(
 
     // Calcular racha actual promedio (o usar la máxima racha actual)
     const averageCurrentStreak = habits.length > 0 ? Math.round(currentStreakSum / habits.length) : 0;
+    
+    // Separar hábitos por tipo
+    const goodHabitsCount = habits.filter(h => h.tipo !== 'MAL_HABITO').length;
+    const addictionsCount = habits.filter(h => h.tipo === 'MAL_HABITO').length;
 
     const response: UserStatsResponse = {
       user_id: targetUserId,
@@ -260,7 +304,13 @@ export async function GET(
       longest_streak: longestStreak,
       current_streak: averageCurrentStreak,
       total_achievements: totalAchievements,
-      join_date: user.fecha_creacion
+      join_date: user.fecha_creacion,
+      // Nuevos campos
+      good_habits_count: goodHabitsCount,
+      addictions_count: addictionsCount,
+      best_good_habit_streak: bestGoodHabitStreak,
+      best_addiction_streak: bestAddictionStreak,
+      habits_with_stats: habitsWithStats
     };
 
     return NextResponse.json(response);
