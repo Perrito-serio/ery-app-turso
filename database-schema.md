@@ -59,21 +59,13 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 -- ------------------------------------------------------------------
--- SECCIÓN 2: Sistema de Roles y Permisos
+-- SECCIÓN 2: Sistema de Roles
 -- ------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre_rol TEXT NOT NULL UNIQUE,
     descripcion TEXT NULL,
-    fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS permisos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre_permiso TEXT NOT NULL UNIQUE,
-    descripcion TEXT NULL,
-    categoria_permiso TEXT NULL,
     fecha_creacion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -84,14 +76,6 @@ CREATE TABLE IF NOT EXISTS usuario_roles (
     PRIMARY KEY (usuario_id, rol_id),
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS rol_permisos (
-    rol_id INTEGER NOT NULL,
-    permiso_id INTEGER NOT NULL,
-    PRIMARY KEY (rol_id, permiso_id),
-    FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE CASCADE,
-    FOREIGN KEY (permiso_id) REFERENCES permisos(id) ON DELETE CASCADE
 );
 
 -- ------------------------------------------------------------------
