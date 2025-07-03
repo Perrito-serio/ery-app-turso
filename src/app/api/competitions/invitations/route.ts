@@ -62,7 +62,7 @@ async function getPendingInvitations(userId: number): Promise<CompetitionInvitat
         u.nombre as creator_name,
         u.foto_perfil_url as creator_photo,
         COUNT(cp.usuario_id) as participant_count,
-        c.created_at as invited_at
+        c.fecha_creacion as invited_at
       FROM competencias c
       JOIN usuarios u ON c.creador_id = u.id
       LEFT JOIN competencia_participantes cp ON c.id = cp.competencia_id
@@ -81,8 +81,8 @@ async function getPendingInvitations(userId: number): Promise<CompetitionInvitat
           )
       )
       GROUP BY c.id, c.nombre, c.descripcion, c.tipo_meta, c.fecha_inicio, 
-               c.fecha_fin, c.estado, c.creador_id, u.nombre, u.foto_perfil_url, c.created_at
-      ORDER BY c.created_at DESC
+               c.fecha_fin, c.estado, c.creador_id, u.nombre, u.foto_perfil_url, c.fecha_creacion
+      ORDER BY c.fecha_creacion DESC
     `,
     args: [userId, userId, userId]
   });

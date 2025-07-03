@@ -49,7 +49,7 @@ async function getUserCompetitions(userId: number, status?: string): Promise<Com
     args.push(status);
   }
   
-  sql += ' ORDER BY c.created_at DESC';
+  sql += ' ORDER BY c.fecha_creacion DESC';
   
   const result = await query({
     sql,
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
         start_date: competition.fecha_inicio,
         end_date: competition.fecha_fin,
         status: getStatusDisplayName(competition.estado),
-        created_at: competition.created_at,
+        created_at: competition.fecha_creacion as string,
         is_creator: isCreator,
         participant_count: participantCount,
         my_score: userData.score,

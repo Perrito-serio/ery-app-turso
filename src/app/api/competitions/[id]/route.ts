@@ -77,7 +77,7 @@ async function getCompetitionById(competitionId: number, userId: number): Promis
     fecha_inicio: row.fecha_inicio as string,
     fecha_fin: row.fecha_fin as string,
     estado: row.estado as 'activa' | 'finalizada' | 'cancelada',
-    fecha_creacion: row.created_at as string,
+    fecha_creacion: row.fecha_creacion as string,
     creador_nombre: row.creador_nombre as string,
     participantes_count: row.participantes_count as number,
     is_participant: Boolean(row.is_participant),
