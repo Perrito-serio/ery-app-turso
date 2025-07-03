@@ -32,10 +32,13 @@ const createCompetitionSchema = z.object({
   }),
   fecha_inicio: z.string().refine((date) => {
     const startDate = new Date(date);
-    const now = new Date();
-    return startDate >= now;
-  }, 'La fecha de inicio debe ser futura'),
-  fecha_fin: z.string()
+    return !isNaN(startDate.getTime());
+  }, 'Fecha de inicio inválida'),
+  fecha_fin: z.string().refine((date) => {
+    const endDate = new Date(date);
+    return !isNaN(endDate.getTime());
+  }, 'Fecha de fin inválida'),
+  invitados: z.array(z.string()).optional()
 });
 
 const updateCompetitionSchema = z.object({

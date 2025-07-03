@@ -27,8 +27,6 @@ interface CreateCompetitionForm {
   tipo_meta: 'MAX_HABITOS_DIA' | 'MAX_RACHA' | 'TOTAL_COMPLETADOS';
   fecha_inicio: string;
   fecha_fin: string;
-  meta_objetivo: number;
-  valor: number;
   invitados: string[];
 }
 
@@ -47,8 +45,6 @@ const CompetitionsPage: React.FC = () => {
     tipo_meta: 'MAX_HABITOS_DIA',
     fecha_inicio: '',
     fecha_fin: '',
-    meta_objetivo: 1,
-    valor: 1,
     invitados: []
   });
 
@@ -61,7 +57,7 @@ const CompetitionsPage: React.FC = () => {
     try {
       setLoading(true);
       const statusParam = filter === 'active' ? 'activa' : filter === 'finished' ? 'finalizada' : '';
-      const url = `/api/competitions/my${statusParam ? `?status=${statusParam}` : ''}&include_stats=true`;
+      const url = `/api/competitions/my${statusParam ? `?status=${statusParam}&include_stats=true` : '?include_stats=true'}`;
       
       const response = await fetch(url);
       if (response.ok) {
@@ -77,6 +73,8 @@ const CompetitionsPage: React.FC = () => {
 
   const handleCreateCompetition = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Iniciando creación de competencia:', createForm);
+    
     try {
       const response = await fetch('/api/competitions', {
         method: 'POST',
@@ -86,7 +84,12 @@ const CompetitionsPage: React.FC = () => {
         body: JSON.stringify(createForm),
       });
 
+      console.log('Respuesta del servidor:', response.status, response.statusText);
+      
       if (response.ok) {
+        const data = await response.json();
+        console.log('Competencia creada exitosamente:', data);
+        
         setShowCreateForm(false);
         setCreateForm({
           nombre: '',
@@ -94,14 +97,22 @@ const CompetitionsPage: React.FC = () => {
           tipo_meta: 'MAX_HABITOS_DIA',
           fecha_inicio: '',
           fecha_fin: '',
-          meta_objetivo: 1,
-          valor: 1,
           invitados: []
         });
-        fetchCompetitions();
+        
+        // Recargar competencias
+        await fetchCompetitions();
+        
+        // Cambiar a la pestaña de dashboard para ver la nueva competencia
+        setActiveTab('dashboard');
+      } else {
+        const errorData = await response.json();
+        console.error('Error del servidor:', errorData);
+        alert(`Error al crear la competencia: ${errorData.message || 'Error desconocido'}`);
       }
     } catch (error) {
       console.error('Error al crear competencia:', error);
+      alert('Error de conexión al crear la competencia. Por favor, intenta de nuevo.');
     }
   };
 
@@ -375,31 +386,7 @@ const CompetitionsPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Meta Objetivo</label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={createForm.meta_objetivo}
-                      onChange={(e) => setCreateForm({ ...createForm, meta_objetivo: parseInt(e.target.value) })}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Valor</label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={createForm.valor}
-                      onChange={(e) => setCreateForm({ ...createForm, valor: parseInt(e.target.value) })}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
+
                 
                 <div className="flex gap-3 pt-4">
                   <button
