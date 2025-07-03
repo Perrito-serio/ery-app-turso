@@ -27,6 +27,8 @@ interface CreateCompetitionForm {
   tipo_meta: 'MAX_HABITOS_DIA' | 'MAX_RACHA' | 'TOTAL_COMPLETADOS';
   fecha_inicio: string;
   fecha_fin: string;
+  meta_objetivo: number;
+  valor: number;
   invitados: string[];
 }
 
@@ -45,6 +47,8 @@ const CompetitionsPage: React.FC = () => {
     tipo_meta: 'MAX_HABITOS_DIA',
     fecha_inicio: '',
     fecha_fin: '',
+    meta_objetivo: 1,
+    valor: 1,
     invitados: []
   });
 
@@ -121,7 +125,9 @@ const CompetitionsPage: React.FC = () => {
           tipo_meta: 'MAX_HABITOS_DIA',
           fecha_inicio: '',
           fecha_fin: '',
-          invitados: []
+          invitados: [],
+          meta_objetivo: 1,
+          valor: 1
         });
         
         // Recargar competencias
@@ -163,7 +169,7 @@ const CompetitionsPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Fecha no disponible';
     
     try {
@@ -434,6 +440,38 @@ const CompetitionsPage: React.FC = () => {
                   </div>
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Meta Objetivo</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    value={createForm.meta_objetivo}
+                    onChange={(e) => setCreateForm({ ...createForm, meta_objetivo: parseInt(e.target.value) || 1 })}
+                    placeholder="Ej: 5 hábitos por día, 30 días de racha, 100 hábitos totales"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    {createForm.tipo_meta === 'MAX_HABITOS_DIA' && 'Número máximo de hábitos por día'}
+                    {createForm.tipo_meta === 'MAX_RACHA' && 'Días consecutivos de racha objetivo'}
+                    {createForm.tipo_meta === 'TOTAL_COMPLETADOS' && 'Total de hábitos a completar'}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Valor por Punto</label>
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    required
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    value={createForm.valor}
+                    onChange={(e) => setCreateForm({ ...createForm, valor: parseFloat(e.target.value) || 1 })}
+                    placeholder="Ej: 1.0, 2.5, 10.0"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Puntos otorgados por cada logro conseguido</p>
+                </div>
 
                 
                 <div className="flex gap-3 pt-4">

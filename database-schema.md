@@ -259,6 +259,9 @@ CREATE TABLE IF NOT EXISTS amistades (
     FOREIGN KEY (usuario_id_1) REFERENCES usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (usuario_id_2) REFERENCES usuarios(id) ON DELETE CASCADE
 );
+
+ALTER TABLE competencias ADD COLUMN meta_objetivo INTEGER;
+ALTER TABLE competencias ADD COLUMN valor REAL;
 ```
 
 ## Notas

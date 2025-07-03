@@ -16,15 +16,13 @@ interface CompetitionDetails {
 }
 
 interface LeaderboardEntry {
-  usuario_id: number;
-  nombre: string;
-  email: string;
-  puntuacion: number;
-  posicion: number;
+  position: number;
+  user_id: number;
+  user_name: string;
+  user_photo: string | null;
+  score: number;
+  join_date: string;
   is_current_user: boolean;
-  avatar_url?: string;
-  racha_actual?: number;
-  habitos_completados?: number;
 }
 
 interface LeaderboardData {
@@ -47,6 +45,13 @@ const CompetitionLeaderboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'Fecha no disponible';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Fecha inválida';
+    return date.toLocaleDateString('es-ES');
+  };
 
   useEffect(() => {
     if (competitionId) {
@@ -266,33 +271,33 @@ const CompetitionLeaderboardPage: React.FC = () => {
             <div className="divide-y divide-gray-700">
               {leaderboard.map((entry) => (
                 <div
-                  key={entry.usuario_id}
+                  key={entry.user_id}
                   className={`p-4 grid grid-cols-12 gap-4 items-center hover:bg-gray-750 transition-colors duration-200 ${
                     entry.is_current_user ? 'bg-indigo-900 bg-opacity-30 border-l-4 border-indigo-500' : ''
                   }`}
                 >
                   <div className="col-span-1 flex justify-center">
-                    {getPositionIcon(entry.posicion)}
+                    {getPositionIcon(entry.position)}
                   </div>
                   <div className="col-span-7">
                     <div className="flex items-center gap-3">
                       <img
-                        src={entry.avatar_url || `https://ui-avatars.com/api/?name=${entry.nombre}&background=random`}
-                        alt={entry.nombre}
+                        src={entry.user_photo || `https://ui-avatars.com/api/?name=${entry.user_name}&background=random`}
+                        alt={entry.user_name}
                         className="w-10 h-10 rounded-full"
                       />
                       <div>
                         <p className={`font-medium ${
                           entry.is_current_user ? 'text-indigo-400' : 'text-white'
                         }`}>
-                          {entry.nombre}
+                          {entry.user_name}
                           {entry.is_current_user && (
                             <span className="ml-2 text-xs bg-indigo-600 text-white px-2 py-1 rounded-full">
                               Tú
                             </span>
                           )}
                         </p>
-                        <p className="text-sm text-gray-400">{entry.email}</p>
+                        <p className="text-sm text-gray-400">Unido: {formatDate(entry.join_date)}</p>
                       </div>
                     </div>
                   </div>
@@ -300,22 +305,14 @@ const CompetitionLeaderboardPage: React.FC = () => {
                     <p className={`text-xl font-bold ${
                       entry.is_current_user ? 'text-indigo-400' : 'text-white'
                     }`}>
-                      {entry.puntuacion}
+                      {entry.score}
                     </p>
                   </div>
                   <div className="col-span-2 flex justify-center gap-4">
-                    {entry.racha_actual !== undefined && (
-                      <div className="text-center">
-                        <p className="text-sm text-gray-400">Racha</p>
-                        <p className="font-bold text-green-400">{entry.racha_actual}</p>
-                      </div>
-                    )}
-                    {entry.habitos_completados !== undefined && (
-                      <div className="text-center">
-                        <p className="text-sm text-gray-400">Completados</p>
-                        <p className="font-bold text-blue-400">{entry.habitos_completados}</p>
-                      </div>
-                    )}
+                    <div className="text-center">
+                      <p className="text-sm text-gray-400">Puntuación</p>
+                      <p className="font-bold text-blue-400">{entry.score}</p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -325,45 +322,45 @@ const CompetitionLeaderboardPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {leaderboard.map((entry) => (
               <div
-                key={entry.usuario_id}
+                key={entry.user_id}
                 className={`bg-gray-800 rounded-lg border overflow-hidden ${
                   entry.is_current_user ? 'border-indigo-500' : 'border-gray-700'
                 }`}
               >
                 <div className={`p-4 text-center ${
-                  entry.posicion === 1 ? 'bg-yellow-500 bg-opacity-20' :
-                  entry.posicion === 2 ? 'bg-gray-400 bg-opacity-20' :
-                  entry.posicion === 3 ? 'bg-orange-600 bg-opacity-20' :
+                  entry.position === 1 ? 'bg-yellow-500 bg-opacity-20' :
+                  entry.position === 2 ? 'bg-gray-400 bg-opacity-20' :
+                  entry.position === 3 ? 'bg-orange-600 bg-opacity-20' :
                   'bg-gray-700'
                 }`}>
                   <div className="flex justify-center mb-2">
-                    {getPositionIcon(entry.posicion)}
+                    {getPositionIcon(entry.position)}
                   </div>
                   <p className="text-lg font-bold text-white">
-                    {entry.posicion === 1 ? '🏆 Primer Lugar' :
-                     entry.posicion === 2 ? '🥈 Segundo Lugar' :
-                     entry.posicion === 3 ? '🥉 Tercer Lugar' :
-                     `Posición #${entry.posicion}`}
+                    {entry.position === 1 ? '🏆 Primer Lugar' :
+                     entry.position === 2 ? '🥈 Segundo Lugar' :
+                     entry.position === 3 ? '🥉 Tercer Lugar' :
+                     `Posición #${entry.position}`}
                   </p>
                 </div>
                 <div className="p-4">
                   <div className="flex flex-col items-center mb-4">
                     <img
-                      src={entry.avatar_url || `https://ui-avatars.com/api/?name=${entry.nombre}&background=random`}
-                      alt={entry.nombre}
+                      src={entry.user_photo || `https://ui-avatars.com/api/?name=${entry.user_name}&background=random`}
+                      alt={entry.user_name}
                       className="w-16 h-16 rounded-full mb-2"
                     />
                     <p className={`font-medium text-lg ${
                       entry.is_current_user ? 'text-indigo-400' : 'text-white'
                     }`}>
-                      {entry.nombre}
+                      {entry.user_name}
                       {entry.is_current_user && (
                         <span className="ml-2 text-xs bg-indigo-600 text-white px-2 py-1 rounded-full">
                           Tú
                         </span>
                       )}
                     </p>
-                    <p className="text-sm text-gray-400">{entry.email}</p>
+                    <p className="text-sm text-gray-400">Unido: {formatDate(entry.join_date)}</p>
                   </div>
                   
                   <div className="bg-gray-750 rounded-lg p-4 mb-4">
@@ -372,24 +369,14 @@ const CompetitionLeaderboardPage: React.FC = () => {
                       <p className={`text-3xl font-bold ${
                         entry.is_current_user ? 'text-indigo-400' : 'text-white'
                       }`}>
-                        {entry.puntuacion}
+                        {entry.score}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    {entry.racha_actual !== undefined && (
-                      <div className="bg-gray-750 rounded-lg p-3 text-center">
-                        <p className="text-sm text-gray-400">Racha</p>
-                        <p className="text-xl font-bold text-green-400">{entry.racha_actual}</p>
-                      </div>
-                    )}
-                    {entry.habitos_completados !== undefined && (
-                      <div className="bg-gray-750 rounded-lg p-3 text-center">
-                        <p className="text-sm text-gray-400">Completados</p>
-                        <p className="text-xl font-bold text-blue-400">{entry.habitos_completados}</p>
-                      </div>
-                    )}
+                  <div className="bg-gray-750 rounded-lg p-3 text-center">
+                    <p className="text-sm text-gray-400">Fecha de Unión</p>
+                    <p className="text-lg font-bold text-blue-400">{formatDate(entry.join_date)}</p>
                   </div>
                 </div>
               </div>
