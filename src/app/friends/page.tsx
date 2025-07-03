@@ -180,10 +180,13 @@ export default function FriendsPage() {
   const respondToInvitation = async (invitationId: number, action: 'aceptar' | 'rechazar') => {
     setIsProcessingInvitation(invitationId);
     try {
+      // Convertir acción al formato esperado por el backend
+      const backendAction = action === 'aceptar' ? 'accept' : 'reject';
+      
       const response = await fetch(`/api/friends/invitations/${invitationId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion: action })
+        body: JSON.stringify({ action: backendAction })
       });
       
       const data = await response.json();
