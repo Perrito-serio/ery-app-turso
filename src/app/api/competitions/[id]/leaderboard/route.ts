@@ -271,6 +271,11 @@ export async function GET(
         fecha_fin: competition.fecha_fin
       },
       leaderboard,
+      user_stats: {
+        current_score: currentUserEntry?.score || 0,
+        position: currentUserEntry?.position || null,
+        total_participants: participants.length
+      },
       current_user_position: currentUserEntry?.position || null,
       total_participants: participants.length,
       last_updated: new Date().toISOString()

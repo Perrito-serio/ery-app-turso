@@ -26,11 +26,12 @@ interface CompetitionDetails {
 }
 
 interface LeaderboardEntry {
-  usuario_id: number;
-  nombre: string;
-  email: string;
-  puntuacion: number;
-  posicion: number;
+  position: number;
+  user_id: number;
+  user_name: string;
+  user_photo: string | null;
+  score: number;
+  join_date: string;
   is_current_user: boolean;
 }
 
@@ -391,32 +392,48 @@ const CompetitionDetailPage: React.FC = () => {
             <div className="divide-y divide-gray-700">
               {leaderboard.map((entry, index) => (
                 <div
-                  key={entry.usuario_id}
+                  key={entry.user_id}
                   className={`p-4 flex items-center justify-between hover:bg-gray-750 transition-colors duration-200 ${
                     entry.is_current_user ? 'bg-indigo-900 bg-opacity-30 border-l-4 border-indigo-500' : ''
                   }`}
                 >
                   <div className="flex items-center gap-4">
-                    {getPositionIcon(entry.posicion)}
-                    <div>
-                      <p className={`font-medium ${
-                        entry.is_current_user ? 'text-indigo-400' : 'text-white'
-                      }`}>
-                        {entry.nombre}
-                        {entry.is_current_user && (
-                          <span className="ml-2 text-xs bg-indigo-600 text-white px-2 py-1 rounded-full">
-                            Tú
-                          </span>
+                    {getPositionIcon(entry.position)}
+                    <div className="flex items-center gap-3">
+                      {/* Avatar del usuario */}
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center">
+                        {entry.user_photo ? (
+                          <img
+                            src={entry.user_photo}
+                            alt={entry.user_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
                         )}
-                      </p>
-                      <p className="text-sm text-gray-400">{entry.email}</p>
+                      </div>
+                      <div>
+                        <p className={`font-medium ${
+                          entry.is_current_user ? 'text-indigo-400' : 'text-white'
+                        }`}>
+                          {entry.user_name}
+                          {entry.is_current_user && (
+                            <span className="ml-2 text-xs bg-indigo-600 text-white px-2 py-1 rounded-full">
+                              Tú
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm text-gray-400">Unido: {new Date(entry.join_date).toLocaleDateString('es-ES')}</p>
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className={`text-lg font-bold ${
                       entry.is_current_user ? 'text-indigo-400' : 'text-white'
                     }`}>
-                      {entry.puntuacion}
+                      {entry.score}
                     </p>
                     <p className="text-sm text-gray-400">puntos</p>
                   </div>

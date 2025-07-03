@@ -28,7 +28,7 @@ interface CompetitionDetails {
   fecha_fin: string;
   estado: 'activa' | 'finalizada' | 'cancelada';
   fecha_creacion: string;
-  creador_nombre: string;
+  creator_name: string;
   participantes_count: number;
   is_participant: boolean;
   is_creator: boolean;
@@ -52,7 +52,7 @@ async function getCompetitionById(competitionId: number, userId: number): Promis
   const result = await query({
     sql: `SELECT 
             c.*,
-            u.nombre as creador_nombre,
+            u.nombre as creator_name,
             COUNT(cp.usuario_id) as participantes_count,
             CASE WHEN cp_user.usuario_id IS NOT NULL THEN 1 ELSE 0 END as is_participant,
             CASE WHEN c.creador_id = ? THEN 1 ELSE 0 END as is_creator
@@ -78,7 +78,7 @@ async function getCompetitionById(competitionId: number, userId: number): Promis
     fecha_fin: row.fecha_fin as string,
     estado: row.estado as 'activa' | 'finalizada' | 'cancelada',
     fecha_creacion: row.fecha_creacion as string,
-    creador_nombre: row.creador_nombre as string,
+    creator_name: row.creator_name as string,
     participantes_count: row.participantes_count as number,
     is_participant: Boolean(row.is_participant),
     is_creator: Boolean(row.is_creator)
