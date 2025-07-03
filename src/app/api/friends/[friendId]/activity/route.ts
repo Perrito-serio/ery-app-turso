@@ -29,7 +29,7 @@ interface DailyActivity {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { friendId: string } }
+  { params }: { params: Promise<{ friendId: string }> }
 ) {
   // Verificar autenticación
   let authResult;
@@ -46,8 +46,9 @@ export async function GET(
     return errorResponse;
   }
 
+  const resolvedParams = await params;
   const userId = parseInt(authResult.user.id);
-  const friendId = parseInt(params.friendId);
+  const friendId = parseInt(resolvedParams.friendId);
 
   // Validar que friendId sea un número válido
   if (isNaN(friendId)) {

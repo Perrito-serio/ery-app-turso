@@ -18,7 +18,7 @@ interface InvitationFromDB {
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { invitationId: string } }
+  { params }: { params: Promise<{ invitationId: string }> }
 ) {
   // Verificar autenticación
   let authResult;
@@ -36,7 +36,8 @@ export async function PUT(
   }
 
   const userId = authResult.user.id;
-  const invitationId = params.invitationId;
+  const resolvedParams = await params;
+  const invitationId = resolvedParams.invitationId;
 
   try {
     const body = await request.json();

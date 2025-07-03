@@ -18,7 +18,7 @@ interface UserBasicInfo {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   // Verificar autenticación
   let authResult;
@@ -35,8 +35,9 @@ export async function GET(
     return errorResponse;
   }
 
+  const resolvedParams = await params;
   const requesterId = parseInt(authResult.user.id);
-  const targetUserId = parseInt(params.userId);
+  const targetUserId = parseInt(resolvedParams.userId);
 
   // Validar que userId sea un número válido
   if (isNaN(targetUserId)) {

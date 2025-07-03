@@ -10,7 +10,7 @@ import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { friendId: string } }
+  { params }: { params: Promise<{ friendId: string }> }
 ) {
   // Verificar autenticación
   let authResult;
@@ -28,7 +28,8 @@ export async function DELETE(
   }
 
   const userId = parseInt(authResult.user.id);
-  const friendId = parseInt(params.friendId);
+  const resolvedParams = await params;
+  const friendId = parseInt(resolvedParams.friendId);
 
   try {
     // Verificar que el friendId es válido

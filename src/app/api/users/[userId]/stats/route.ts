@@ -26,7 +26,7 @@ interface UserStatsResponse {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Verificar autenticación
@@ -44,8 +44,9 @@ export async function GET(
       return errorResponse;
     }
 
+    const resolvedParams = await params;
     const requestingUserId = parseInt(authResult.user.id, 10);
-    const targetUserId = parseInt(params.userId, 10);
+    const targetUserId = parseInt(resolvedParams.userId, 10);
 
     // Verificar que el usuario existe
     const userResult = await query({
@@ -66,9 +67,11 @@ export async function GET(
     if (requestingUserId !== targetUserId) {
       const friendshipResult = await query({
         sql: `SELECT 1 FROM amistades 
-              WHERE (usuario1_id = ? AND usuario2_id = ?) 
-                 OR (usuario1_id = ? AND usuario2_id = ?)`,
-        args: [requestingUserId, targetUserId, targetUserId, requestingUserId]
+              WHERE usuario_id_1 = ? AND usuario_id_2 = ?`,
+        args: [
+          Math.min(requestingUserId, targetUserId),
+          Math.max(requestingUserId, targetUserId)
+        ]
       });
 
       if (friendshipResult.rows.length === 0) {

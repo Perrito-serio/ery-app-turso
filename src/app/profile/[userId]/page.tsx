@@ -1,7 +1,7 @@
 // src/app/profile/[userId]/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/MainLayout';
@@ -31,7 +31,7 @@ interface FriendStats {
 }
 
 interface ProfilePageProps {
-  params: { userId: string };
+  params: Promise<{ userId: string }>;
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
@@ -43,7 +43,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const friendId = parseInt(params.userId);
+  const resolvedParams = use(params);
+  const friendId = parseInt(resolvedParams.userId);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -53,13 +54,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
     }
 
     // Verificar que no sea el mismo usuario
-    if (session.user.id === params.userId) {
+    if (session.user.id === resolvedParams.userId) {
       router.push('/my-dashboard');
       return;
     }
 
     loadFriendData();
-  }, [session, status, params.userId, router]);
+  }, [session, status, resolvedParams.userId, router]);
 
   const loadFriendData = async () => {
     setIsLoading(true);
