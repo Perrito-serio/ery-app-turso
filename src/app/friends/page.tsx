@@ -319,31 +319,46 @@ export default function FriendsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {friends.map(friend => (
-                  <div key={friend.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                  <div key={friend.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 hover:bg-gray-750 transition-colors">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center">
+                      <div 
+                        className="flex items-center flex-1 cursor-pointer"
+                        onClick={() => router.push(`/profile/${friend.id}`)}
+                        title="Ver perfil de amigo"
+                      >
                         <img
                           src={`https://ui-avatars.com/api/?name=${friend.nombre}&background=random`}
                           alt={friend.nombre}
                           className="w-12 h-12 rounded-full mr-3"
                         />
                         <div>
-                          <h4 className="font-semibold text-white">{friend.nombre}</h4>
+                          <h4 className="font-semibold text-white hover:text-indigo-300 transition-colors">{friend.nombre}</h4>
                           <p className="text-sm text-gray-400">{friend.email}</p>
                           <p className="text-xs text-gray-500">
                             Amigos desde: {new Date(friend.fecha_inicio_amistad).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setFriendToDelete(friend)}
-                        className="text-red-400 hover:text-red-300 p-2 rounded-md hover:bg-red-900/20"
-                        title="Eliminar amistad"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => router.push(`/profile/${friend.id}`)}
+                          className="text-indigo-400 hover:text-indigo-300 p-2 rounded-md hover:bg-indigo-900/20"
+                          title="Ver perfil"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setFriendToDelete(friend)}
+                          className="text-red-400 hover:text-red-300 p-2 rounded-md hover:bg-red-900/20"
+                          title="Eliminar amistad"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
