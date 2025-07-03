@@ -263,12 +263,12 @@ export async function GET(
     return NextResponse.json({
       competition: {
         id: competition.id,
-        name: competition.nombre,
-        description: competition.descripcion,
-        type: competition.tipo_meta,
-        start_date: competition.fecha_inicio,
-        end_date: competition.fecha_fin,
-        status: competition.estado
+        nombre: competition.nombre,
+        descripcion: competition.descripcion,
+        tipo_meta: competition.tipo_meta,
+        estado: competition.estado,
+        fecha_inicio: competition.fecha_inicio,
+        fecha_fin: competition.fecha_fin
       },
       leaderboard,
       current_user_position: currentUserEntry?.position || null,

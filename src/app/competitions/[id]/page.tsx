@@ -58,38 +58,49 @@ const CompetitionDetailPage: React.FC = () => {
   useEffect(() => {
     if (competitionId) {
       fetchCompetitionDetails();
-      fetchLeaderboard();
     }
   }, [competitionId]);
 
   const fetchCompetitionDetails = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`/api/competitions/${competitionId}`);
       if (!response.ok) {
         throw new Error('Error al cargar los detalles de la competencia');
       }
       const data = await response.json();
-      return data;
+      // Crear estructura compatible con LeaderboardData
+      const competitionData = {
+        competition: data.competition,
+        leaderboard: [],
+        user_stats: undefined
+      };
+      setCompetitionData(competitionData);
+      await fetchLeaderboard();
     } catch (error) {
       console.error('Error:', error);
       setError('Error al cargar los detalles de la competencia');
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchLeaderboard = async () => {
     try {
-      setLoading(true);
       const response = await fetch(`/api/competitions/${competitionId}/leaderboard`);
       if (!response.ok) {
         throw new Error('Error al cargar el leaderboard');
       }
       const data = await response.json();
-      setCompetitionData(data);
+      // Combinar datos de competencia existentes con leaderboard
+      setCompetitionData(prevData => ({
+        competition: prevData?.competition || data.competition,
+        leaderboard: data.leaderboard,
+        user_stats: data.user_stats
+      }));
     } catch (error) {
       console.error('Error:', error);
       setError('Error al cargar el leaderboard');
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -283,28 +283,28 @@ export async function GET(
     const result = await query({
       sql: `SELECT DISTINCT
               CASE 
-                WHEN a.usuario_id = ? THEN u2.id
+                WHEN a.usuario_id_1 = ? THEN u2.id
                 ELSE u1.id
               END as friend_id,
               CASE 
-                WHEN a.usuario_id = ? THEN u2.nombre
+                WHEN a.usuario_id_1 = ? THEN u2.nombre
                 ELSE u1.nombre
               END as friend_name,
               CASE 
-                WHEN a.usuario_id = ? THEN u2.foto_perfil_url
+                WHEN a.usuario_id_1 = ? THEN u2.foto_perfil_url
                 ELSE u1.foto_perfil_url
               END as friend_photo
             FROM amistades a
-            JOIN usuarios u1 ON a.usuario_id = u1.id
-            JOIN usuarios u2 ON a.amigo_id = u2.id
-            WHERE (a.usuario_id = ? OR a.amigo_id = ?)
+            JOIN usuarios u1 ON a.usuario_id_1 = u1.id
+            JOIN usuarios u2 ON a.usuario_id_2 = u2.id
+            WHERE (a.usuario_id_1 = ? OR a.usuario_id_2 = ?)
               AND a.estado = 'aceptada'
               AND u1.estado = 'activo' AND u2.estado = 'activo'
               AND NOT EXISTS (
                 SELECT 1 FROM competencia_participantes cp 
                 WHERE cp.competencia_id = ? 
                   AND cp.usuario_id = CASE 
-                    WHEN a.usuario_id = ? THEN u2.id
+                    WHEN a.usuario_id_1 = ? THEN u2.id
                     ELSE u1.id
                   END
               )

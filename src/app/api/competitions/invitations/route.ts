@@ -69,9 +69,8 @@ async function getPendingInvitations(userId: number): Promise<CompetitionInvitat
       WHERE c.id IN (
         SELECT DISTINCT c2.id
         FROM competencias c2
-        JOIN amistades a ON (a.usuario_id = c2.creador_id OR a.amigo_id = c2.creador_id)
-        WHERE (a.usuario_id = ? OR a.amigo_id = ?)
-          AND a.estado = 'aceptada'
+        JOIN amistades a ON (a.usuario_id_1 = c2.creador_id OR a.usuario_id_2 = c2.creador_id)
+        WHERE (a.usuario_id_1 = ? OR a.usuario_id_2 = ?)
           AND c2.estado = 'activa'
           AND DATE(c2.fecha_inicio) > DATE('now')
           AND c2.id NOT IN (
@@ -94,10 +93,9 @@ async function isUserFriendOfCreator(userId: number, creatorId: number): Promise
   const result = await query({
     sql: `
       SELECT 1 FROM amistades 
-      WHERE ((usuario_id = ? AND amigo_id = ?) OR (usuario_id = ? AND amigo_id = ?))
-        AND estado = 'aceptada'
+      WHERE (usuario_id_1 = ? AND usuario_id_2 = ?) OR (usuario_id_1 = ? AND usuario_id_2 = ?)
     `,
-    args: [userId, creatorId, creatorId, userId]
+    args: [Math.min(userId, creatorId), Math.max(userId, creatorId), Math.min(userId, creatorId), Math.max(userId, creatorId)]
   });
 
   return result.rows.length > 0;

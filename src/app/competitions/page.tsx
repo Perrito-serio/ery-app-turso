@@ -62,7 +62,31 @@ const CompetitionsPage: React.FC = () => {
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setCompetitions(data.competitions || []);
+        console.log('Datos recibidos de la API:', data);
+        
+        // Mapear los datos de la API al formato esperado por el frontend
+        const mappedCompetitions = (data.competitions || []).map((comp: any) => {
+          console.log('Mapeando competencia:', comp);
+          return {
+            id: comp.id,
+            creador_id: comp.is_creator ? parseInt(session?.user?.id || '0') : 0,
+            nombre: comp.name,
+            descripcion: comp.description,
+            tipo_meta: comp.type === 'Máximo hábitos por día' ? 'MAX_HABITOS_DIA' : 
+                       comp.type === 'Racha más larga' ? 'MAX_RACHA' : 'TOTAL_COMPLETADOS',
+            fecha_inicio: comp.start_date,
+            fecha_fin: comp.end_date,
+            estado: comp.status === 'Activa' ? 'activa' : 
+                    comp.status === 'Finalizada' ? 'finalizada' : 'cancelada',
+            fecha_creacion: comp.created_at,
+            participantes_count: comp.participant_count,
+            is_creator: comp.is_creator,
+            is_participant: !comp.is_creator
+          };
+        });
+        
+        console.log('Competencias mapeadas:', mappedCompetitions);
+        setCompetitions(mappedCompetitions);
       }
     } catch (error) {
       console.error('Error al cargar competencias:', error);
@@ -140,19 +164,43 @@ const CompetitionsPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'Fecha no disponible';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error al formatear fecha:', dateString, error);
+      return 'Fecha inválida';
+    }
   };
 
   const getDaysRemaining = (fechaFin: string) => {
-    const today = new Date();
-    const endDate = new Date(fechaFin);
-    const diffTime = endDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    if (!fechaFin) return 0;
+    
+    try {
+      const today = new Date();
+      const endDate = new Date(fechaFin);
+      
+      if (isNaN(endDate.getTime())) {
+        return 0;
+      }
+      
+      const diffTime = endDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    } catch (error) {
+      console.error('Error al calcular días restantes:', fechaFin, error);
+      return 0;
+    }
   };
 
   if (!session) {

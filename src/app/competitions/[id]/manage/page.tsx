@@ -105,10 +105,14 @@ const ManageCompetitionPage: React.FC = () => {
       }
       
       // Obtener invitaciones
-      const invitationsResponse = await fetch(`/api/competitions/${competitionId}/invitations`);
+      const invitationsResponse = await fetch(`/api/competitions/invitations`);
       if (invitationsResponse.ok) {
         const invitationsData = await invitationsResponse.json();
-        setInvitations(invitationsData.invitations || []);
+        // Filtrar invitaciones para esta competencia específica
+        const competitionInvitations = invitationsData.invitations?.filter(
+          (inv: any) => inv.competencia_id === parseInt(competitionId)
+        ) || [];
+        setInvitations(competitionInvitations);
       }
       
     } catch (error) {
@@ -139,10 +143,14 @@ const ManageCompetitionPage: React.FC = () => {
         setShowInviteModal(false);
         setSelectedFriends([]);
         // Recargar invitaciones
-        const invitationsResponse = await fetch(`/api/competitions/${competitionId}/invitations`);
+        const invitationsResponse = await fetch(`/api/competitions/invitations`);
         if (invitationsResponse.ok) {
           const invitationsData = await invitationsResponse.json();
-          setInvitations(invitationsData.invitations || []);
+          // Filtrar invitaciones para esta competencia específica
+          const competitionInvitations = invitationsData.invitations?.filter(
+            (inv: any) => inv.competencia_id === parseInt(competitionId)
+          ) || [];
+          setInvitations(competitionInvitations);
         }
       } else {
         const errorData = await response.json();
