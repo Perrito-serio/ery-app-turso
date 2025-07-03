@@ -42,11 +42,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
       try {
         const response = await fetch('/api/friends/invitations');
         if (response.ok) {
-          const data = await response.json();
-          const received = data.invitations?.filter(
-            (inv: any) => inv.usuario_receptor_id === parseInt(user.id) && inv.estado === 'pendiente'
-          ) || [];
-          setPendingInvitations(received.length);
+            const data = await response.json();
+            const received = data.received_invitations?.filter(
+              (inv: any) => inv.estado === 'pendiente'
+            ) || [];
+            setPendingInvitations(received.length);
         }
       } catch (error) {
         // Silenciar errores para no afectar la UI

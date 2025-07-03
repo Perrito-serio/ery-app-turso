@@ -20,12 +20,14 @@ interface Friend extends User {
 
 interface FriendInvitation {
   id: number;
-  usuario_emisor_id: number;
-  usuario_receptor_id: number;
+  solicitante_id: number;
+  solicitado_id: number;
   estado: 'pendiente' | 'aceptada' | 'rechazada';
-  fecha_creacion: string;
-  emisor?: User;
-  receptor?: User;
+  fecha_envio: string;
+  solicitante_nombre?: string;
+  solicitante_email?: string;
+  solicitado_nombre?: string;
+  solicitado_email?: string;
 }
 
 // --- Iconos ---
@@ -102,7 +104,9 @@ export default function FriendsPage() {
       const response = await fetch('/api/friends/invitations');
       if (!response.ok) throw new Error('Error al cargar invitaciones');
       const data = await response.json();
-      setInvitations(data.invitations || []);
+      // Combinar invitaciones recibidas y enviadas
+      const allInvitations = [...(data.received_invitations || []), ...(data.sent_invitations || [])];
+      setInvitations(allInvitations);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
     }
@@ -157,7 +161,7 @@ export default function FriendsPage() {
       const response = await fetch('/api/friends/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_receptor_id: userId })
+        body: JSON.stringify({ solicitado_id: userId })
       });
       
       const data = await response.json();
@@ -223,7 +227,7 @@ export default function FriendsPage() {
 
   // Obtener invitaciones recibidas pendientes
   const receivedInvitations = invitations.filter(
-    inv => inv.usuario_receptor_id === parseInt(session?.user?.id || '0') && inv.estado === 'pendiente'
+    inv => inv.solicitado_id === parseInt(session?.user?.id || '0') && inv.estado === 'pendiente'
   );
 
   if (status === 'loading' || isLoading) {
@@ -383,15 +387,15 @@ export default function FriendsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <img
-                          src={`https://ui-avatars.com/api/?name=${invitation.emisor?.nombre}&background=random`}
-                          alt={invitation.emisor?.nombre}
+                          src={`https://ui-avatars.com/api/?name=${invitation.solicitante_nombre}&background=random`}
+                          alt={invitation.solicitante_nombre}
                           className="w-12 h-12 rounded-full mr-3"
                         />
                         <div>
-                          <h4 className="font-semibold text-white">{invitation.emisor?.nombre}</h4>
-                          <p className="text-sm text-gray-400">{invitation.emisor?.email}</p>
+                          <h4 className="font-semibold text-white">{invitation.solicitante_nombre}</h4>
+                          <p className="text-sm text-gray-400">{invitation.solicitante_email}</p>
                           <p className="text-xs text-gray-500">
-                            Enviada: {new Date(invitation.fecha_creacion).toLocaleDateString()}
+                            Enviada: {new Date(invitation.fecha_envio).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -459,7 +463,7 @@ export default function FriendsPage() {
                     {searchResults.map(user => {
                       const isAlreadyFriend = friends.some(f => f.id === user.id);
                       const hasPendingInvitation = invitations.some(
-                        inv => (inv.usuario_emisor_id === user.id || inv.usuario_receptor_id === user.id) && inv.estado === 'pendiente'
+                        inv => (inv.solicitante_id === user.id || inv.solicitado_id === user.id) && inv.estado === 'pendiente'
                       );
                       
                       return (
