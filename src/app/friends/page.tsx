@@ -10,11 +10,11 @@ import { ConfirmationModal } from '@/components/ConfirmationModal';
 interface User {
   id: number;
   nombre: string;
-  email: string;
   fecha_creacion: string;
 }
 
 interface Friend extends User {
+  email: string;
   fecha_inicio_amistad: string;
 }
 
@@ -477,7 +477,7 @@ export default function FriendsPage() {
                               />
                               <div>
                                 <h4 className="font-semibold text-white">{user.nombre}</h4>
-                                <p className="text-sm text-gray-400">{user.email}</p>
+                                <p className="text-sm text-gray-400">ID: {user.id}</p>
                                 <p className="text-xs text-gray-500">
                                   Miembro desde: {new Date(user.fecha_creacion).toLocaleDateString()}
                                 </p>

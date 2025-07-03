@@ -7,7 +7,6 @@ import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '
 interface UserSearchResult {
   id: number;
   nombre: string;
-  email: string;
   fecha_creacion: string;
 }
 
@@ -49,12 +48,12 @@ export async function GET(request: NextRequest) {
     const searchTerm = `%${searchQuery.trim()}%`;
 
     // Buscar usuarios por nombre o email, excluyendo al usuario actual
+    // Solo devolvemos id, nombre y fecha_creacion por seguridad
     const usersResult = await query({
       sql: `
         SELECT 
           id,
           nombre,
-          email,
           fecha_creacion
         FROM usuarios 
         WHERE 
