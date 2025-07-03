@@ -15,6 +15,8 @@ interface Competition extends Row {
   fecha_fin: string;
   estado: 'activa' | 'finalizada' | 'cancelada';
   created_at: string;
+  meta_objetivo: number;
+  valor: number;
 }
 
 interface UserCompetition {

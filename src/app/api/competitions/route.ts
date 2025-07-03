@@ -16,6 +16,8 @@ interface Competition extends Row {
   fecha_fin: string;
   estado: 'activa' | 'finalizada' | 'cancelada';
   fecha_creacion: string;
+  meta_objetivo: number;
+  valor: number;
 }
 
 interface CompetitionWithCreator extends Competition {
@@ -38,6 +40,8 @@ const createCompetitionSchema = z.object({
     const endDate = new Date(date);
     return !isNaN(endDate.getTime());
   }, 'Fecha de fin inválida'),
+  meta_objetivo: z.number().min(1, 'El objetivo debe ser mayor a 0'),
+  valor: z.number().min(0.1, 'El valor debe ser mayor a 0'),
   invitados: z.array(z.string()).optional()
 });
 
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { nombre, descripcion, tipo_meta, fecha_inicio, fecha_fin } = validationResult.data;
+    const { nombre, descripcion, tipo_meta, fecha_inicio, fecha_fin, meta_objetivo, valor } = validationResult.data;
 
     // Validar rango de fechas
     if (!validateDateRange(fecha_inicio, fecha_fin)) {
@@ -91,10 +95,10 @@ export async function POST(request: NextRequest) {
 
     // Crear la competencia
     const result = await query({
-      sql: `INSERT INTO competencias (creador_id, nombre, descripcion, tipo_meta, fecha_inicio, fecha_fin)
-             VALUES (?, ?, ?, ?, ?, ?)
+      sql: `INSERT INTO competencias (creador_id, nombre, descripcion, tipo_meta, fecha_inicio, fecha_fin, meta_objetivo, valor)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
              RETURNING id`,
-      args: [userId, nombre, descripcion || null, tipo_meta, fecha_inicio, fecha_fin]
+      args: [userId, nombre, descripcion || null, tipo_meta, fecha_inicio, fecha_fin, meta_objetivo, valor]
     });
 
     const competitionId = result.rows[0]?.id as number;

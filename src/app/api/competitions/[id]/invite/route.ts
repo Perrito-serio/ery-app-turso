@@ -13,6 +13,8 @@ interface Competition extends Row {
   estado: 'activa' | 'finalizada' | 'cancelada';
   fecha_inicio: string;
   fecha_fin: string;
+  meta_objetivo: number;
+  valor: number;
 }
 
 interface Friend extends Row {

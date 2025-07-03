@@ -16,6 +16,8 @@ interface Competition extends Row {
   fecha_fin: string;
   estado: 'activa' | 'finalizada' | 'cancelada';
   fecha_creacion: string;
+  meta_objetivo: number;
+  valor: number;
 }
 
 interface CompetitionDetails {
@@ -28,6 +30,8 @@ interface CompetitionDetails {
   fecha_fin: string;
   estado: 'activa' | 'finalizada' | 'cancelada';
   fecha_creacion: string;
+  meta_objetivo: number;
+  valor: number;
   creator_name: string;
   participantes_count: number;
   is_participant: boolean;
@@ -78,6 +82,8 @@ async function getCompetitionById(competitionId: number, userId: number): Promis
     fecha_fin: row.fecha_fin as string,
     estado: row.estado as 'activa' | 'finalizada' | 'cancelada',
     fecha_creacion: row.fecha_creacion as string,
+    meta_objetivo: row.meta_objetivo as number,
+    valor: row.valor as number,
     creator_name: row.creator_name as string,
     participantes_count: row.participantes_count as number,
     is_participant: Boolean(row.is_participant),
