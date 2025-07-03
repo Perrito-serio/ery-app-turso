@@ -25,6 +25,7 @@ interface FriendProfileData {
 interface FriendStats {
   totalCompletions: number;
   currentStreak: number;
+  longestStreak: number;
   totalAchievements: number;
   joinDate: string;
 }
@@ -66,9 +67,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
 
     try {
       // Cargar datos del perfil del amigo, logros y estadísticas en paralelo
-      const [profileRes, achievementsRes] = await Promise.all([
+      const [profileRes, achievementsRes, statsRes] = await Promise.all([
         fetch(`/api/users/${friendId}`),
-        fetch(`/api/friends/${friendId}/achievements`)
+        fetch(`/api/friends/${friendId}/achievements`),
+        fetch(`/api/users/${friendId}/stats`)
       ]);
 
       if (!profileRes.ok) {
@@ -89,18 +91,28 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
         }
       }
 
+      if (!statsRes.ok) {
+        if (statsRes.status === 403) {
+          throw new Error('No tienes permiso para ver las estadísticas de este usuario');
+        } else {
+          throw new Error('Error al cargar las estadísticas');
+        }
+      }
+
       const profileData = await profileRes.json();
       const achievementsData = await achievementsRes.json();
+      const statsData = await statsRes.json();
 
       setFriendProfile(profileData.user || profileData);
       setAchievements(achievementsData.achievements || []);
 
-      // Calcular estadísticas básicas
-      const joinDate = new Date(profileData.user?.fecha_creacion || profileData.fecha_creacion);
+      // Usar estadísticas reales del nuevo endpoint
+      const joinDate = new Date(statsData.join_date);
       setStats({
-        totalCompletions: 0, // Se podría calcular desde la actividad
-        currentStreak: 0, // Se podría calcular desde la actividad
-        totalAchievements: achievementsData.achievements?.length || 0,
+        totalCompletions: statsData.total_habits_completed || 0,
+        currentStreak: statsData.current_streak || 0,
+        longestStreak: statsData.longest_streak || 0,
+        totalAchievements: statsData.total_achievements || 0,
         joinDate: joinDate.toLocaleDateString('es-ES')
       });
 
@@ -190,7 +202,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
 
           {/* Estadísticas básicas */}
           {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-blue-50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-blue-600">{stats.totalAchievements}</div>
                 <div className="text-sm text-blue-800">Logros Obtenidos</div>
@@ -198,6 +210,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
               <div className="bg-green-50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-green-600">{stats.currentStreak}</div>
                 <div className="text-sm text-green-800">Racha Actual</div>
+              </div>
+              <div className="bg-orange-50 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-orange-600">{stats.longestStreak}</div>
+                <div className="text-sm text-orange-800">Racha Más Larga</div>
               </div>
               <div className="bg-purple-50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-purple-600">{stats.totalCompletions}</div>
