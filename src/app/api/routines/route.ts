@@ -1,7 +1,8 @@
 // src/app/api/routines/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
 
@@ -25,10 +26,19 @@ interface Routine extends Row {
  * Obtiene todas las rutinas del usuario autenticado.
  */
 export async function GET(request: NextRequest) {
-  // 1. Verificar que el usuario esté autenticado
-  const authResult = await getAuthenticatedUser(request);
+  // 1. Verificar que el usuario esté autenticado (dual: web session o API token)
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
+  }
+
   if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(authResult)
+      : createWebAuthError(authResult);
+    return errorResponse;
   }
   const userId = authResult.user.id;
 
@@ -53,10 +63,19 @@ export async function GET(request: NextRequest) {
  * Crea una nueva rutina para el usuario autenticado.
  */
 export async function POST(request: NextRequest) {
-  // 1. Verificar que el usuario esté autenticado
-  const authResult = await getAuthenticatedUser(request);
+  // 1. Verificar que el usuario esté autenticado (dual: web session o API token)
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
+  }
+
   if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(authResult)
+      : createWebAuthError(authResult);
+    return errorResponse;
   }
   const userId = authResult.user.id;
 

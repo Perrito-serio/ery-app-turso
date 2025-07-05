@@ -1,7 +1,8 @@
 // src/app/api/competitions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
 
@@ -66,10 +67,19 @@ function validateDateRange(fecha_inicio: string, fecha_fin: string): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticación
-    const authResult = await getAuthenticatedUser(request);
+    // Verificar autenticación (dual: web session o API token)
+    let authResult;
+    if (request.headers.has('Authorization')) {
+      authResult = await verifyApiToken(request);
+    } else {
+      authResult = await getAuthenticatedUser(request);
+    }
+
     if (!authResult.success) {
-      return createAuthErrorResponse(authResult);
+      const errorResponse = request.headers.has('Authorization')
+        ? createApiTokenError(authResult)
+        : createWebAuthError(authResult);
+      return errorResponse;
     }
     const userId = authResult.user.id;
 
@@ -129,10 +139,19 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verificar autenticación
-    const authResult = await getAuthenticatedUser(request);
+    // Verificar autenticación (dual: web session o API token)
+    let authResult;
+    if (request.headers.has('Authorization')) {
+      authResult = await verifyApiToken(request);
+    } else {
+      authResult = await getAuthenticatedUser(request);
+    }
+
     if (!authResult.success) {
-      return createAuthErrorResponse(authResult);
+      const errorResponse = request.headers.has('Authorization')
+        ? createApiTokenError(authResult)
+        : createWebAuthError(authResult);
+      return errorResponse;
     }
     const userId = authResult.user.id;
 

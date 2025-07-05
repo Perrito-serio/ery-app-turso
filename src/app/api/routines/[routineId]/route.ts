@@ -1,7 +1,8 @@
 // src/app/api/routines/[routineId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
 
@@ -48,9 +49,19 @@ interface RouteContext {
  * Obtiene los detalles de una rutina específica, incluyendo sus hábitos.
  */
 export async function GET(request: NextRequest, { params }: RouteContext) {
-  const authResult = await getAuthenticatedUser(request);
+  // Autenticación (dual: web session o API token)
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
+  }
+
   if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(authResult)
+      : createWebAuthError(authResult);
+    return errorResponse;
   }
   const userId = authResult.user.id;
   const { routineId } = params;
@@ -98,9 +109,19 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
  * Actualiza el nombre o la descripción de una rutina.
  */
 export async function PUT(request: NextRequest, { params }: RouteContext) {
-    const authResult = await getAuthenticatedUser(request);
+    // Autenticación (dual: web session o API token)
+    let authResult;
+    if (request.headers.has('Authorization')) {
+      authResult = await verifyApiToken(request);
+    } else {
+      authResult = await getAuthenticatedUser(request);
+    }
+
     if (!authResult.success) {
-        return createAuthErrorResponse(authResult);
+      const errorResponse = request.headers.has('Authorization')
+        ? createApiTokenError(authResult)
+        : createWebAuthError(authResult);
+      return errorResponse;
     }
     const userId = authResult.user.id;
     const { routineId } = params;
@@ -155,9 +176,19 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
  * Elimina una rutina.
  */
 export async function DELETE(request: NextRequest, { params }: RouteContext) {
-    const authResult = await getAuthenticatedUser(request);
+    // Autenticación (dual: web session o API token)
+    let authResult;
+    if (request.headers.has('Authorization')) {
+      authResult = await verifyApiToken(request);
+    } else {
+      authResult = await getAuthenticatedUser(request);
+    }
+
     if (!authResult.success) {
-        return createAuthErrorResponse(authResult);
+      const errorResponse = request.headers.has('Authorization')
+        ? createApiTokenError(authResult)
+        : createWebAuthError(authResult);
+      return errorResponse;
     }
     const userId = authResult.user.id;
     const { routineId } = params;

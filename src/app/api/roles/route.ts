@@ -1,6 +1,7 @@
 // src/app/api/roles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, createAuthErrorResponse, requireRoles } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError, requireRoles as requireApiTokenRoles } from '@/lib/apiTokenAuth';
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError, requireRoles as requireWebRoles } from '@/lib/mobileAuthUtils';
 import { query } from '@/lib/db';
 import { Row } from '@libsql/client';
 
@@ -12,16 +13,30 @@ interface RoleData extends Row {
 }
 
 export async function GET(request: NextRequest) {
-  // Verificar autenticación
-  const authResult = await getAuthenticatedUser(request);
+  // Verificar autenticación (dual: web session o API token)
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
+  }
+
   if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(authResult)
+      : createWebAuthError(authResult);
+    return errorResponse;
   }
 
   // Verificar autorización
-  const roleError = requireRoles(authResult.user, ['administrador']);
+  const roleError = request.headers.has('Authorization')
+    ? requireApiTokenRoles(authResult.user, ['administrador'])
+    : requireWebRoles(authResult.user, ['administrador']);
   if (roleError) {
-    return createAuthErrorResponse(roleError);
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(roleError)
+      : createWebAuthError(roleError);
+    return errorResponse;
   }
 
   console.log(`Administrador ${authResult.user?.email} (ID: ${authResult.user?.id}) está solicitando la lista de todos los roles.`);

@@ -1,7 +1,8 @@
 // src/app/api/rankings/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
 import { Row } from '@libsql/client';
 
 // --- Interfaces ---
@@ -75,9 +76,19 @@ function calculateNegativeStreak(logs: HabitLog[], creationDate: string): number
 
 // --- ENDPOINT GET (LÓGICA REFACTORIZADA) ---
 export async function GET(request: NextRequest) {
-  const authResult = await getAuthenticatedUser(request);
+  // Autenticación (dual: web session o API token)
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
+  }
+
   if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(authResult)
+      : createWebAuthError(authResult);
+    return errorResponse;
   }
 
   const { searchParams } = new URL(request.url);

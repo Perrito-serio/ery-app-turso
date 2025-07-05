@@ -1,7 +1,8 @@
 // src/app/api/competitions/[id]/invite/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
 import { z } from 'zod';
 import { Row } from '@libsql/client';
 
@@ -111,10 +112,19 @@ export async function POST(
   { params }: RouteContext
 ) {
   try {
-    // Verificar autenticación
-    const authResult = await getAuthenticatedUser(request);
+    // Autenticación (dual: web session o API token)
+    let authResult;
+    if (request.headers.has('Authorization')) {
+      authResult = await verifyApiToken(request);
+    } else {
+      authResult = await getAuthenticatedUser(request);
+    }
+
     if (!authResult.success) {
-      return createAuthErrorResponse(authResult);
+      const errorResponse = request.headers.has('Authorization')
+        ? createApiTokenError(authResult)
+        : createWebAuthError(authResult);
+      return errorResponse;
     }
     const userId = parseInt(authResult.user.id, 10);
 
@@ -259,10 +269,19 @@ export async function GET(
   { params }: RouteContext
 ) {
   try {
-    // Verificar autenticación
-    const authResult = await getAuthenticatedUser(request);
+    // Autenticación (dual: web session o API token)
+    let authResult;
+    if (request.headers.has('Authorization')) {
+      authResult = await verifyApiToken(request);
+    } else {
+      authResult = await getAuthenticatedUser(request);
+    }
+
     if (!authResult.success) {
-      return createAuthErrorResponse(authResult);
+      const errorResponse = request.headers.has('Authorization')
+        ? createApiTokenError(authResult)
+        : createWebAuthError(authResult);
+      return errorResponse;
     }
     const userId = parseInt(authResult.user.id, 10);
 

@@ -1,7 +1,8 @@
 // src/app/api/achievements/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getAuthenticatedUser, createAuthErrorResponse } from '@/lib/mobileAuthUtils';
+import { verifyApiToken, createAuthErrorResponse as createApiTokenError } from '@/lib/apiTokenAuth';
+import { getAuthenticatedUser, createAuthErrorResponse as createWebAuthError } from '@/lib/mobileAuthUtils';
 import { Row } from '@libsql/client';
 
 // --- Interfaces ---
@@ -27,10 +28,19 @@ interface AchievementStatus {
 
 // GET /api/achievements - Obtiene todos los logros y el estado de desbloqueo para el usuario actual.
 export async function GET(request: NextRequest) {
-  // 1. Autenticación
-  const authResult = await getAuthenticatedUser(request);
+  // 1. Autenticación (dual: web session o API token)
+  let authResult;
+  if (request.headers.has('Authorization')) {
+    authResult = await verifyApiToken(request);
+  } else {
+    authResult = await getAuthenticatedUser(request);
+  }
+
   if (!authResult.success) {
-    return createAuthErrorResponse(authResult);
+    const errorResponse = request.headers.has('Authorization')
+      ? createApiTokenError(authResult)
+      : createWebAuthError(authResult);
+    return errorResponse;
   }
   const userId = authResult.user.id;
 
