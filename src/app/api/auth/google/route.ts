@@ -21,16 +21,18 @@ interface UserRole {
   nombre_rol: string;
 }
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// Inicializa el cliente sin un ID por defecto. Se lo daremos después.
+const client = new OAuth2Client();
 
 /**
  * POST /api/auth/google
  * Permite a un usuario registrarse o iniciar sesión con su cuenta de Google.
  */
 export async function POST(request: NextRequest) {
-  // Verificación de variables de entorno críticas
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.NEXTAUTH_SECRET) {
-    console.error("Faltan variables de entorno críticas: GOOGLE_CLIENT_ID o NEXTAUTH_SECRET");
+  // --- CAMBIO 1: Verificar las nuevas variables de entorno ---
+  // Ahora buscamos las variables específicas para web y android.
+  if (!process.env.GOOGLE_CLIENT_ID_WEB || !process.env.GOOGLE_CLIENT_ID_ANDROID || !process.env.NEXTAUTH_SECRET) {
+    console.error("Faltan variables de entorno críticas para la autenticación de Google.");
     return NextResponse.json({ message: 'Error de configuración del servidor.' }, { status: 500 });
   }
 
@@ -47,9 +49,14 @@ export async function POST(request: NextRequest) {
     // 1. Verificar el idToken con Google
     let ticket;
     try {
+      // --- CAMBIO 2: Usar AMBOS Client IDs en la audiencia ---
+      // Esto permite que el backend valide tokens tanto de la web como de Flutter.
       ticket = await client.verifyIdToken({
         idToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: [
+          process.env.GOOGLE_CLIENT_ID_WEB,
+          process.env.GOOGLE_CLIENT_ID_ANDROID
+        ],
       });
     } catch (error) {
       console.error('Error al verificar el idToken de Google:', error);
@@ -83,7 +90,6 @@ export async function POST(request: NextRequest) {
 
       const insertResult = await query({
         sql: 'INSERT INTO usuarios (nombre, email, password_hash, foto_perfil_url, estado) VALUES (?, ?, ?, ?, ?)',
-        // --- ESTA ES LA LÍNEA CORREGIDA ---
         args: [name, email, passwordHash, picture ?? null, 'activo'],
       });
 
