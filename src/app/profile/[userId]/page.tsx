@@ -54,6 +54,42 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Inyectar animaciones CSS
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes shimmer {
+        0% { background-position: -200px 0; }
+        100% { background-position: calc(200px + 100%) 0; }
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      @keyframes glow {
+        0%, 100% { box-shadow: 0 0 5px rgba(99, 102, 241, 0.5); }
+        50% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.8), 0 0 30px rgba(99, 102, 241, 0.6); }
+      }
+      .animate-fadeIn { animation: fadeIn 0.6s ease-out; }
+      .animate-slideUp { animation: slideUp 0.5s ease-out; }
+      .animate-shimmer { animation: shimmer 2s infinite; }
+      .animate-pulse-custom { animation: pulse 2s infinite; }
+      .animate-glow { animation: glow 2s infinite; }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const resolvedParams = use(params);
   const friendId = parseInt(resolvedParams.userId);
 
@@ -153,10 +189,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
   if (status === 'loading' || isLoading) {
     return (
       <MainLayout>
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando perfil...</p>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex justify-center items-center">
+          <div className="text-center animate-fadeIn">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 mx-auto mb-6"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-600 border-t-transparent absolute top-0 left-1/2 transform -translate-x-1/2 animate-glow"></div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl px-8 py-4 shadow-lg border border-white/20">
+              <p className="text-slate-700 font-medium text-lg mb-2">Cargando perfil...</p>
+              <div className="w-48 h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full animate-shimmer" style={{backgroundSize: '200px 100%'}}></div>
+              </div>
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -166,17 +210,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
   if (error) {
     return (
       <MainLayout>
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <div className="text-red-600 text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-red-800 mb-2">Error</h2>
-            <p className="text-red-700">{error}</p>
-            <button
-              onClick={() => router.back()}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Volver
-            </button>
+        <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 flex justify-center items-center p-6">
+          <div className="max-w-md w-full animate-slideUp">
+            <div className="bg-white/90 backdrop-blur-sm border border-red-200/50 rounded-2xl p-8 text-center shadow-2xl">
+              <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse-custom">
+                <span className="text-white text-3xl">⚠️</span>
+              </div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent mb-4">Error</h2>
+              <p className="text-red-700 mb-6 leading-relaxed">{error}</p>
+              <button
+                onClick={() => router.back()}
+                className="w-full px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-medium"
+              >
+                ← Volver
+              </button>
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -186,9 +234,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
   if (!friendProfile) {
     return (
       <MainLayout>
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="text-center py-12">
-            <p className="text-gray-600">No se pudo cargar el perfil del usuario.</p>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex justify-center items-center p-6">
+          <div className="max-w-md w-full animate-fadeIn">
+            <div className="bg-white/90 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-8 text-center shadow-xl">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-white text-3xl">👤</span>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Perfil no disponible</h2>
+              <p className="text-gray-600 mb-6">No se pudo cargar el perfil del usuario.</p>
+              <button
+                onClick={() => router.back()}
+                className="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-medium"
+              >
+                ← Volver
+              </button>
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -197,162 +257,202 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ params }) => {
 
   return (
     <MainLayout>
-      <div className="max-w-6xl mx-auto p-6 space-y-8">
-        {/* Header del perfil */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                {friendProfile.nombre.charAt(0).toUpperCase()}
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950 to-black">
+        <div className="max-w-6xl mx-auto p-6 space-y-8">
+          {/* Header del perfil */}
+          <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/30 p-8 animate-fadeIn">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-6">
+                <div className="relative">
+                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg animate-glow">
+                    {friendProfile.nombre.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white animate-pulse-custom"></div>
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent mb-2">{friendProfile.nombre}</h1>
+                  <p className="text-gray-300 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-indigo-400 rounded-full"></span>
+                    Miembro desde {stats?.joinDate}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{friendProfile.nombre}</h1>
-                <p className="text-gray-600">Miembro desde {stats?.joinDate}</p>
-              </div>
+              <button
+                onClick={() => router.back()}
+                className="px-6 py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-gray-200 rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 transform hover:scale-105 hover:shadow-lg font-medium border border-gray-600/50"
+              >
+                ← Volver
+              </button>
             </div>
-            <button
-              onClick={() => router.back()}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              ← Volver
-            </button>
+
+            {/* Estadísticas básicas */}
+            {stats && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-center text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp">
+                  <div className="text-3xl font-bold mb-2">{stats.totalAchievements}</div>
+                  <div className="text-blue-100 font-medium">Logros Obtenidos</div>
+                  <div className="mt-2 text-4xl opacity-20">🏆</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-center text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp" style={{animationDelay: '0.1s'}}>
+                  <div className="text-3xl font-bold mb-2">{stats.currentStreak}</div>
+                  <div className="text-green-100 font-medium">Racha Actual</div>
+                  <div className="mt-2 text-4xl opacity-20">🔥</div>
+                </div>
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-center text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp" style={{animationDelay: '0.2s'}}>
+                  <div className="text-3xl font-bold mb-2">{stats.longestStreak}</div>
+                  <div className="text-orange-100 font-medium">Racha Más Larga</div>
+                  <div className="mt-2 text-4xl opacity-20">⚡</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-center text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp" style={{animationDelay: '0.3s'}}>
+                  <div className="text-3xl font-bold mb-2">{stats.totalCompletions}</div>
+                  <div className="text-purple-100 font-medium">Hábitos Completados</div>
+                  <div className="mt-2 text-4xl opacity-20">✅</div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Estadísticas básicas */}
+          {/* Resumen de Progreso Detallado */}
           {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-blue-50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.totalAchievements}</div>
-                <div className="text-sm text-blue-800">Logros Obtenidos</div>
-              </div>
-              <div className="bg-green-50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.currentStreak}</div>
-                <div className="text-sm text-green-800">Racha Actual</div>
-              </div>
-              <div className="bg-orange-50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-orange-600">{stats.longestStreak}</div>
-                <div className="text-sm text-orange-800">Racha Más Larga</div>
-              </div>
-              <div className="bg-purple-50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.totalCompletions}</div>
-                <div className="text-sm text-purple-800">Hábitos Completados</div>
+            <div className="bg-gradient-to-br from-black to-gray-950 rounded-2xl shadow-2xl p-8 animate-fadeIn border border-gray-800/50">
+              <h2 className="text-2xl font-bold text-gray-100 mb-8 flex items-center gap-3">
+                <span className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-700 rounded-lg flex items-center justify-center text-sm">📊</span>
+                Resumen de Progreso
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div className="bg-gradient-to-br from-green-700 to-green-600 p-6 rounded-xl text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp">
+                  <div className="text-3xl font-bold text-white mb-2">{stats.goodHabitsCount}</div>
+                  <div className="text-green-100 font-medium">Hábitos Positivos</div>
+                  <div className="mt-2 text-2xl opacity-30">✅</div>
+                </div>
+                <div className="bg-gradient-to-br from-red-700 to-red-600 p-6 rounded-xl text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp" style={{animationDelay: '0.1s'}}>
+                  <div className="text-3xl font-bold text-white mb-2">{stats.addictionsCount}</div>
+                  <div className="text-red-100 font-medium">Adicciones</div>
+                  <div className="mt-2 text-2xl opacity-30">🚫</div>
+                </div>
+                <div className="bg-gradient-to-br from-orange-700 to-orange-600 p-6 rounded-xl text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp" style={{animationDelay: '0.2s'}}>
+                  <div className="text-3xl font-bold text-white mb-2">{stats.bestGoodHabitStreak}</div>
+                  <div className="text-orange-100 font-medium">Mejor racha (hábitos)</div>
+                  <div className="mt-2 text-2xl opacity-30">🔥</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-700 to-purple-600 p-6 rounded-xl text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp" style={{animationDelay: '0.3s'}}>
+                  <div className="text-3xl font-bold text-white mb-2">{stats.bestAddictionStreak}</div>
+                  <div className="text-purple-100 font-medium">Mejor racha (adicciones)</div>
+                  <div className="mt-2 text-2xl opacity-30">💪</div>
+                </div>
+                <div className="bg-gradient-to-br from-yellow-700 to-yellow-600 p-6 rounded-xl text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-slideUp" style={{animationDelay: '0.4s'}}>
+                  <div className="text-3xl font-bold text-white mb-2">{stats.totalAchievements}</div>
+                  <div className="text-yellow-100 font-medium">Logros desbloqueados</div>
+                  <div className="mt-2 text-2xl opacity-30">🏆</div>
+                </div>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Resumen de Progreso Detallado */}
-        {stats && (
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-white mb-6">Resumen de Progreso</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-gradient-to-br from-green-700 to-green-600 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-white">{stats.goodHabitsCount}</div>
-                <div className="text-sm text-green-100">Hábitos Positivos</div>
-              </div>
-              <div className="bg-gradient-to-br from-red-700 to-red-600 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-white">{stats.addictionsCount}</div>
-                <div className="text-sm text-red-100">Adicciones</div>
-              </div>
-              <div className="bg-gradient-to-br from-orange-700 to-orange-600 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-white">{stats.bestGoodHabitStreak}</div>
-                <div className="text-sm text-orange-100">Mejor racha (hábitos)</div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-700 to-purple-600 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-white">{stats.bestAddictionStreak}</div>
-                <div className="text-sm text-purple-100">Mejor racha (adicciones)</div>
-              </div>
-              <div className="bg-gradient-to-br from-yellow-700 to-yellow-600 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-white">{stats.totalAchievements}</div>
-                <div className="text-sm text-yellow-100">Logros desbloqueados</div>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Calendario de actividad */}
+            <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/30 p-8 animate-slideUp hover:shadow-2xl transition-all duration-300">
+              <h2 className="text-xl font-bold text-gray-100 mb-6 flex items-center gap-3">
+                <span className="w-8 h-8 bg-gradient-to-r from-green-600 to-emerald-700 rounded-lg flex items-center justify-center text-white text-sm">📅</span>
+                Actividad de {friendProfile.nombre}
+              </h2>
+              <FriendActivityCalendar friendId={friendId} friendName={friendProfile.nombre} />
             </div>
-          </div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calendario de actividad */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Actividad de {friendProfile.nombre}</h2>
-            <FriendActivityCalendar friendId={friendId} friendName={friendProfile.nombre} />
-          </div>
+            {/* Hábitos y Rachas */}
+            <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/30 p-8 animate-slideUp hover:shadow-2xl transition-all duration-300" style={{animationDelay: '0.1s'}}>
+              <h2 className="text-xl font-bold text-gray-100 mb-6 flex items-center gap-3">
+                <span className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center text-white text-sm">📊</span>
+                Hábitos y Rachas
+              </h2>
+              {stats && stats.habitsWithStats.length > 0 ? (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {stats.habitsWithStats.map((habit, index) => (
+                    <div key={habit.id} className={`p-5 rounded-xl border-l-4 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-102 animate-fadeIn ${
+                      habit.tipo === 'MAL_HABITO' 
+                        ? 'border-red-400 bg-gradient-to-r from-red-900/80 to-red-800/60' 
+                        : 'border-green-400 bg-gradient-to-r from-green-900/80 to-green-800/60'
+                    }`} style={{animationDelay: `${index * 0.1}s`}}>
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-white mb-1">{habit.nombre}</h3>
+                          <p className={`text-sm font-medium ${
+                            habit.tipo === 'MAL_HABITO' ? 'text-red-300' : 'text-green-300'
+                          }`}>
+                            {habit.tipo === 'MAL_HABITO' ? '🚫 Adicción' : 
+                             habit.tipo === 'SI_NO' ? '✅ Hábito Sí/No' : '📈 Hábito Medible'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-2xl font-bold mb-1 ${
+                            habit.tipo === 'MAL_HABITO' ? 'text-red-200' : 'text-green-200'
+                          }`}>
+                            {habit.racha_actual}
+                          </div>
+                          <div className="text-xs text-gray-300 font-medium">
+                            {habit.tipo === 'MAL_HABITO' ? 'días sin recaída' : 'días consecutivos'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gradient-to-br from-gray-700 to-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 opacity-70">
+                    <span className="text-white text-2xl">📊</span>
+                  </div>
+                  <p className="text-gray-300 font-medium">No tiene hábitos registrados</p>
+                  <p className="text-gray-400 text-sm mt-2">Los hábitos aparecerán aquí cuando estén disponibles</p>
+                </div>
+              )}
+            </div>
 
-          {/* Hábitos y Rachas */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Hábitos y Rachas</h2>
-            {stats && stats.habitsWithStats.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {stats.habitsWithStats.map((habit) => (
-                  <div key={habit.id} className={`p-4 rounded-lg border-l-4 ${
-                    habit.tipo === 'MAL_HABITO' 
-                      ? 'border-red-500 bg-red-50' 
-                      : 'border-green-500 bg-green-50'
-                  }`}>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{habit.nombre}</h3>
-                        <p className="text-sm text-gray-600">
-                          {habit.tipo === 'MAL_HABITO' ? 'Adicción' : 
-                           habit.tipo === 'SI_NO' ? 'Hábito Sí/No' : 'Hábito Medible'}
+            {/* Logros recientes */}
+            <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-700/30 p-8 animate-slideUp hover:shadow-2xl transition-all duration-300" style={{animationDelay: '0.2s'}}>
+              <h2 className="text-xl font-bold text-gray-100 mb-6 flex items-center gap-3">
+                <span className="w-8 h-8 bg-gradient-to-r from-yellow-600 to-orange-700 rounded-lg flex items-center justify-center text-white text-sm">🏆</span>
+                Logros Recientes
+              </h2>
+              {achievements.length > 0 ? (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {achievements.slice(0, 10).map((achievement, index) => (
+                    <div key={achievement.id} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-102 animate-fadeIn border border-yellow-700/30" style={{animationDelay: `${index * 0.1}s`}}>
+                      <div className="w-12 h-12 bg-gradient-to-br from-yellow-600 to-orange-700 rounded-full flex items-center justify-center shadow-lg">
+                        {achievement.icono_url ? (
+                          <img src={achievement.icono_url} alt={achievement.nombre} className="w-7 h-7" />
+                        ) : (
+                          <span className="text-white text-xl">🏆</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-100 mb-1">{achievement.nombre}</h3>
+                        <p className="text-sm text-gray-300 mb-2">{achievement.descripcion}</p>
+                        <p className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                          Obtenido el {formatDate(achievement.fecha_obtencion)}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <div className={`text-lg font-bold ${
-                          habit.tipo === 'MAL_HABITO' ? 'text-red-600' : 'text-green-600'
-                        }`}>
-                          {habit.racha_actual}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {habit.tipo === 'MAL_HABITO' ? 'días sin recaída' : 'días consecutivos'}
-                        </div>
+                    </div>
+                  ))}
+                  {achievements.length > 10 && (
+                    <div className="text-center py-4">
+                      <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-xl p-3 border border-yellow-700/30">
+                        <p className="text-sm text-gray-300 font-medium">Y {achievements.length - 10} logros más...</p>
                       </div>
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gradient-to-br from-yellow-600 to-orange-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-white text-2xl">🏆</span>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-gray-400 text-4xl mb-2">📊</div>
-                <p className="text-gray-600">No tiene hábitos registrados</p>
-              </div>
-            )}
-          </div>
-
-          {/* Logros recientes */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Logros Recientes</h2>
-            {achievements.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {achievements.slice(0, 10).map((achievement) => (
-                  <div key={achievement.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                      {achievement.icono_url ? (
-                        <img src={achievement.icono_url} alt={achievement.nombre} className="w-6 h-6" />
-                      ) : (
-                        <span className="text-yellow-600 text-lg">🏆</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{achievement.nombre}</h3>
-                      <p className="text-sm text-gray-600">{achievement.descripcion}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Obtenido el {formatDate(achievement.fecha_obtencion)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {achievements.length > 10 && (
-                  <div className="text-center py-2">
-                    <p className="text-sm text-gray-500">Y {achievements.length - 10} logros más...</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-gray-400 text-4xl mb-2">🏆</div>
-                <p className="text-gray-600">Aún no tiene logros obtenidos</p>
-              </div>
-            )}
+                  <p className="text-gray-300 font-medium">Aún no tiene logros obtenidos</p>
+                  <p className="text-gray-400 text-sm mt-2">Los logros aparecerán aquí cuando los desbloquee</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
