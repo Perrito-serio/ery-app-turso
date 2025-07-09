@@ -186,14 +186,23 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
 
   return (
     <div className="flex h-screen bg-gray-900 text-white">
-      <aside className={`fixed inset-y-0 left-0 z-30 w-64 sidebar-gradient shadow-2xl transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-500 ease-in-out md:relative md:translate-x-0 md:block ${isLoaded ? 'animate-slideInLeft' : ''} backdrop-blur-sm border-r border-gray-700/50`}>
-        <div className="p-6 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur-sm animate-fadeInUp">
-          <Link href="/" className="text-3xl font-bold text-white logo-glow hover:text-indigo-400 transition-all duration-300 block text-center">
+      {/* Overlay para móviles */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden transition-opacity duration-300"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Cerrar menú"
+        />
+      )}
+      
+      <aside className={`fixed inset-y-0 left-0 z-30 w-64 lg:w-64 md:w-56 sidebar-gradient shadow-2xl transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-500 ease-in-out lg:relative lg:translate-x-0 lg:block ${isLoaded ? 'animate-slideInLeft' : ''} backdrop-blur-sm border-r border-gray-700/50`}>
+        <div className="p-4 lg:p-6 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur-sm animate-fadeInUp">
+          <Link href="/" className="text-2xl lg:text-3xl font-bold text-white logo-glow hover:text-indigo-400 transition-all duration-300 block text-center">
             Ery
           </Link>
           <div className="mt-2 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-shimmer" style={{backgroundSize: '200px 100%'}}></div>
         </div>
-        <nav className="mt-6 flex-1 px-3">
+        <nav className="mt-4 lg:mt-6 flex-1 px-2 lg:px-3 pb-20 lg:pb-0">
           {user && navLinks.map((link, index) => {
             const hasAccess = link.roles.some(role => userRoles.includes(role));
             if (!hasAccess) {
@@ -204,7 +213,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
                 key={link.text}
                 href={link.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`group flex items-center justify-between mx-2 my-1 px-4 py-3 text-gray-300 rounded-xl transition-all duration-300 transform hover:scale-105 nav-link-hover animate-fadeInUp ${
+                className={`group flex items-center justify-between mx-1 lg:mx-2 my-1 px-3 lg:px-4 py-2.5 lg:py-3 text-gray-300 rounded-xl transition-all duration-300 transform hover:scale-105 nav-link-hover animate-fadeInUp ${
                   isActive(link.href) 
                     ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg animate-glow border border-indigo-400/50' 
                     : 'hover:bg-gradient-to-r hover:from-gray-700/80 hover:to-gray-600/80 hover:text-white hover:shadow-md'
@@ -215,7 +224,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
                   <div className={`transition-all duration-300 ${isActive(link.href) ? 'animate-pulse-custom' : 'group-hover:scale-110'}`}>
                     {link.icon}
                   </div>
-                  <span className="font-medium">{link.text}</span>
+                  <span className="font-medium text-sm lg:text-base">{link.text}</span>
                 </div>
                 {link.hasNotification && pendingInvitations > 0 && (
                   <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full animate-bounceIn shadow-lg">
@@ -229,32 +238,33 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
             );
           })}
         </nav>
-        <div className="absolute bottom-0 w-full border-t border-gray-700/50 p-4 bg-gradient-to-t from-gray-900/90 to-transparent backdrop-blur-sm animate-fadeInUp">
+        <div className="absolute bottom-0 w-full border-t border-gray-700/50 p-3 lg:p-4 bg-gradient-to-t from-gray-900/90 to-transparent backdrop-blur-sm animate-fadeInUp">
           {user && (
-            <div className="flex items-center mb-4 p-3 bg-gradient-to-r from-gray-800/60 via-indigo-900/30 to-gray-700/60 rounded-xl border border-gray-600/30 backdrop-blur-sm animate-bounceIn animate-background-pulse" style={{backgroundSize: '200% 200%'}}>
+            <div className="flex items-center mb-3 lg:mb-4 p-2.5 lg:p-3 bg-gradient-to-r from-gray-800/60 via-indigo-900/30 to-gray-700/60 rounded-xl border border-gray-600/30 backdrop-blur-sm animate-bounceIn animate-background-pulse" style={{backgroundSize: '200% 200%'}}>
               <div className="relative">
                 <img 
                   src={user.image || `https://ui-avatars.com/api/?name=${user.name || user.email}&background=random`} 
                   alt="Avatar" 
-                  className="w-12 h-12 rounded-full mr-3 border-2 border-indigo-400/50 shadow-lg transition-all duration-300 hover:scale-110 hover:border-indigo-400" 
+                  className="w-10 h-10 lg:w-12 lg:h-12 rounded-full mr-2.5 lg:mr-3 border-2 border-indigo-400/50 shadow-lg transition-all duration-300 hover:scale-110 hover:border-indigo-400" 
                 />
-                <div className="absolute -bottom-0.5 -left-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800 animate-pulse-custom shadow-lg"></div>
+                <div className="absolute -bottom-0.5 -left-0.5 w-2.5 h-2.5 lg:w-3 lg:h-3 bg-green-500 rounded-full border-2 border-gray-800 animate-pulse-custom shadow-lg"></div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-white">{user.name || user.email}</p>
-                <p className="text-xs text-indigo-300 font-medium">{userRoles.join(', ')}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs lg:text-sm font-semibold text-white truncate">{user.name || user.email}</p>
+                <p className="text-xs text-indigo-300 font-medium truncate">{userRoles.join(', ')}</p>
               </div>
             </div>
           )}
           {user && (
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="w-full flex items-center justify-center px-4 py-3 text-sm font-semibold text-red-300 hover:text-white bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600 hover:to-red-700 rounded-xl transition-all duration-300 border border-red-500/50 hover:border-red-400 transform hover:scale-105 hover:shadow-lg group"
+              className="w-full flex items-center justify-center px-3 lg:px-4 py-2.5 lg:py-3 text-xs lg:text-sm font-semibold text-red-300 hover:text-white bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600 hover:to-red-700 rounded-xl transition-all duration-300 border border-red-500/50 hover:border-red-400 transform hover:scale-105 hover:shadow-lg group"
             >
               <div className="transition-transform duration-300 group-hover:rotate-12">
                 <LogoutIcon />
               </div>
-              Cerrar Sesión
+              <span className="hidden sm:inline">Cerrar Sesión</span>
+              <span className="sm:hidden">Salir</span>
             </button>
           )}
         </div>
@@ -262,23 +272,23 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-gradient-to-r from-gray-800 via-gray-850 to-gray-900 shadow-xl border-b border-gray-700/50 backdrop-blur-sm">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center justify-between px-4 lg:px-6 py-3 lg:py-4">
             <button 
               onClick={() => setSidebarOpen(true)}
-              className="text-gray-300 hover:text-white focus:outline-none md:hidden transition-all duration-300 transform hover:scale-110 hover:rotate-180 p-2 rounded-lg hover:bg-gray-700/50"
+              className="text-gray-300 hover:text-white focus:outline-none lg:hidden transition-all duration-300 transform hover:scale-110 hover:rotate-180 p-2 rounded-lg hover:bg-gray-700/50"
               aria-label="Abrir menú"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="text-xl font-bold text-white bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent animate-fadeInUp">{pageTitle}</h1>
+            <h1 className="text-lg lg:text-xl font-bold text-white bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent animate-fadeInUp truncate">{pageTitle}</h1>
             <div className="flex items-center">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse-custom"></div>
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-900 p-6 md:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-900 p-4 lg:p-6 xl:p-8">
           {children}
         </main>
       </div>
