@@ -206,8 +206,15 @@ const CompetitionDetailPage: React.FC = () => {
   if (!session) {
     return (
       <MainLayout pageTitle="Competencia">
-        <div className="flex items-center justify-center h-64">
-          <p className="text-gray-400">Debes iniciar sesión para ver esta competencia.</p>
+        <div className="flex items-center justify-center h-64 animate-fade-in">
+          <div className="text-center p-8 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl border border-gray-700/50 backdrop-blur-sm">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <p className="text-gray-300 text-lg font-medium">Debes iniciar sesión para ver esta competencia.</p>
+          </div>
         </div>
       </MainLayout>
     );
@@ -216,8 +223,16 @@ const CompetitionDetailPage: React.FC = () => {
   if (loading) {
     return (
       <MainLayout pageTitle="Cargando...">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+        <div className="flex items-center justify-center h-64 animate-fade-in">
+          <div className="text-center p-8 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl border border-gray-700/50 backdrop-blur-sm">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-spin">
+                <div className="absolute inset-1 bg-gray-900 rounded-full"></div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-pulse opacity-75"></div>
+            </div>
+            <p className="text-gray-300 text-lg font-medium">Cargando competencia...</p>
+          </div>
         </div>
       </MainLayout>
     );
@@ -226,18 +241,24 @@ const CompetitionDetailPage: React.FC = () => {
   if (error || !competitionData) {
     return (
       <MainLayout pageTitle="Error">
-        <div className="text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-300">Error</h3>
-          <p className="mt-1 text-sm text-gray-400">{error}</p>
-          <div className="mt-6">
+        <div className="text-center py-12 animate-fade-in">
+          <div className="max-w-md mx-auto p-8 bg-gradient-to-br from-red-900/20 to-red-800/20 rounded-2xl border border-red-700/50 backdrop-blur-sm">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center animate-pulse">
+              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-red-400 mb-2">Error</h3>
+            <p className="text-gray-300 mb-6">{error}</p>
             <Link
               href="/competitions"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              className="relative inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-800 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-indigo-500/25 overflow-hidden group"
             >
-              Volver a Competencias
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+              <svg className="w-5 h-5 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="relative">Volver a Competencias</span>
             </Link>
           </div>
         </div>
@@ -253,69 +274,90 @@ const CompetitionDetailPage: React.FC = () => {
     <MainLayout pageTitle={competition.nombre}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link
-              href="/competitions"
-              className="text-gray-400 hover:text-white transition-colors duration-200"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-white">{competition.nombre}</h1>
-                <span className={getStatusBadge(competition.estado)}>
-                  {competition.estado}
-                </span>
+        <div className="mb-8 animate-fade-in">
+          <div className="relative p-6 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-2xl border border-gray-700/50 backdrop-blur-sm overflow-hidden group">
+            {/* Efectos de fondo */}
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-50"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-600/10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-500/10 to-pink-500/10 rounded-full blur-2xl"></div>
+            
+            <div className="relative flex items-center gap-4 mb-4">
+              <Link
+                href="/competitions"
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-300 transform hover:scale-110"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-gray-100 to-white bg-clip-text text-transparent">
+                    {competition.nombre}
+                  </h1>
+                  <span className={`${getStatusBadge(competition.estado)} shadow-lg transform hover:scale-105 transition-transform duration-200`}>
+                    {competition.estado}
+                  </span>
+                </div>
+                <p className="text-gray-300">{competition.descripcion || 'Sin descripción'}</p>
               </div>
-              <p className="text-gray-400">{competition.descripcion || 'Sin descripción'}</p>
             </div>
           </div>
 
           {/* Información de la competencia */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center text-sm text-gray-400 mb-1">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+          <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="group relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl p-4 border border-gray-700/50 backdrop-blur-sm hover:border-indigo-500/50 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative flex items-center text-sm text-gray-400 mb-2">
+                <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg mr-3 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
                 Tipo de Meta
               </div>
-              <p className="text-white font-medium">{getCompetitionTypeLabel(competition.tipo_meta)}</p>
+              <p className="relative text-white font-medium">{getCompetitionTypeLabel(competition.tipo_meta)}</p>
             </div>
 
-            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center text-sm text-gray-400 mb-1">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+            <div className="group relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl p-4 border border-gray-700/50 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-green-500/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative flex items-center text-sm text-gray-400 mb-2">
+                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg mr-3 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
                 Duración
               </div>
-              <p className="text-white font-medium">
+              <p className="relative text-white font-medium text-sm">
                 {formatDate(competition.fecha_inicio)} - {formatDate(competition.fecha_fin)}
               </p>
             </div>
 
-            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center text-sm text-gray-400 mb-1">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+            <div className="group relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl p-4 border border-gray-700/50 backdrop-blur-sm hover:border-blue-500/50 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative flex items-center text-sm text-gray-400 mb-2">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg mr-3 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
                 Creador
               </div>
-              <p className="text-white font-medium">{competition.creator_name}</p>
+              <p className="relative text-white font-medium">{competition.creator_name}</p>
             </div>
 
-            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center text-sm text-gray-400 mb-1">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            <div className="group relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl p-4 border border-gray-700/50 backdrop-blur-sm hover:border-yellow-500/50 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-yellow-500/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative flex items-center text-sm text-gray-400 mb-2">
+                <div className="p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg mr-3 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
                 {isActive ? 'Tiempo Restante' : 'Estado'}
               </div>
-              <p className="text-white font-medium">
+              <p className="relative text-white font-medium">
                 {isActive ? (
                   daysRemaining > 0 ? `${daysRemaining} días` : 'Último día'
                 ) : (
@@ -327,20 +369,60 @@ const CompetitionDetailPage: React.FC = () => {
 
           {/* Estadísticas del usuario */}
           {user_stats && (
-            <div className="bg-indigo-900 bg-opacity-50 rounded-lg p-4 border border-indigo-700 mb-6">
-              <h3 className="text-lg font-semibold text-white mb-3">Tu Rendimiento</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-indigo-400">{user_stats.current_score}</p>
-                  <p className="text-sm text-gray-300">Puntuación Actual</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-indigo-400">#{user_stats.position}</p>
-                  <p className="text-sm text-gray-300">Posición</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-indigo-400">{user_stats.total_participants}</p>
-                  <p className="text-sm text-gray-300">Total Participantes</p>
+            <div className="relative bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-2xl p-6 border border-indigo-700/50 backdrop-blur-sm mb-6 overflow-hidden group">
+              {/* Efectos de fondo */}
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-50"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-500"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-500/20 to-pink-500/20 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-500"></div>
+              
+              <div className="relative">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  Tu Rendimiento
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="group/stat relative bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 border border-gray-700/50 hover:border-indigo-500/50 transition-all duration-300 transform hover:scale-105 text-center overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative flex items-center justify-center mb-2">
+                      <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg group-hover/stat:scale-110 transition-transform duration-300">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                    </div>
+                    <p className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-300 bg-clip-text text-transparent mb-1">{user_stats.current_score}</p>
+                    <p className="text-sm text-gray-400 font-medium">Puntuación Actual</p>
+                  </div>
+                  
+                  <div className="group/stat relative bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 border border-gray-700/50 hover:border-yellow-500/50 transition-all duration-300 transform hover:scale-105 text-center overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative flex items-center justify-center mb-2">
+                      <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg group-hover/stat:scale-110 transition-transform duration-300">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <p className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-300 bg-clip-text text-transparent mb-1">#{user_stats.position}</p>
+                    <p className="text-sm text-gray-400 font-medium">Posición</p>
+                  </div>
+                  
+                  <div className="group/stat relative bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 transform hover:scale-105 text-center overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative flex items-center justify-center mb-2">
+                      <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg group-hover/stat:scale-110 transition-transform duration-300">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <p className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent mb-1">{user_stats.total_participants}</p>
+                    <p className="text-sm text-gray-400 font-medium">Total Participantes</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -352,19 +434,27 @@ const CompetitionDetailPage: React.FC = () => {
               <button
                 onClick={handleJoinCompetition}
                 disabled={joining}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                className="relative group bg-gradient-to-r from-green-600 via-emerald-600 to-green-700 hover:from-green-700 hover:via-emerald-700 hover:to-green-800 disabled:from-gray-600 disabled:via-gray-600 disabled:to-gray-700 text-white px-8 py-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 disabled:hover:scale-100 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 disabled:shadow-gray-500/25 flex items-center gap-3 overflow-hidden"
               >
+                {/* Efecto de brillo */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                
                 {joining ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Uniéndose...
+                    <div className="relative w-5 h-5">
+                      <div className="absolute inset-0 border-2 border-white/30 rounded-full"></div>
+                      <div className="absolute inset-0 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <span className="relative">Uniéndose...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Unirse a la Competencia
+                    <div className="relative p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors duration-300">
+                      <svg className="w-5 h-5 relative" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <span className="relative text-lg">Unirse a la Competencia</span>
                   </>
                 )}
               </button>
@@ -373,38 +463,64 @@ const CompetitionDetailPage: React.FC = () => {
         </div>
 
         {/* Leaderboard */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700">
-          <div className="p-6 border-b border-gray-700">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-              </svg>
+        <div className="relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-700/50 backdrop-blur-sm overflow-hidden">
+          {/* Efectos de fondo */}
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-orange-500/5 to-yellow-500/5 opacity-50"></div>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-yellow-500/10 to-orange-600/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative p-6 border-b border-gray-700/50">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl shadow-lg">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
               Tabla de Clasificación
             </h2>
           </div>
           
           {leaderboard.length === 0 ? (
             <div className="p-8 text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-300">Sin participantes</h3>
-              <p className="mt-1 text-sm text-gray-400">Aún no hay participantes en esta competencia.</p>
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-300 mb-2">Sin participantes</h3>
+              <p className="text-sm text-gray-400">¡Sé el primero en unirte a esta competencia!</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-700">
+            <div className="space-y-3 p-2">
               {leaderboard.map((entry, index) => (
                 <div
                   key={entry.user_id}
-                  className={`p-4 flex items-center justify-between hover:bg-gray-750 transition-colors duration-200 ${
-                    entry.is_current_user ? 'bg-indigo-900 bg-opacity-30 border-l-4 border-indigo-500' : ''
+                  className={`group relative flex items-center justify-between p-5 rounded-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden ${
+                    entry.position === 1
+                      ? 'bg-gradient-to-r from-yellow-500/20 via-yellow-400/15 to-yellow-500/20 border border-yellow-500/30 shadow-lg shadow-yellow-500/10'
+                      : entry.position === 2
+                      ? 'bg-gradient-to-r from-gray-400/20 via-gray-300/15 to-gray-400/20 border border-gray-400/30 shadow-lg shadow-gray-400/10'
+                      : entry.position === 3
+                      ? 'bg-gradient-to-r from-orange-500/20 via-orange-400/15 to-orange-500/20 border border-orange-500/30 shadow-lg shadow-orange-500/10'
+                      : entry.is_current_user
+                      ? 'bg-gradient-to-r from-indigo-900/50 via-indigo-800/30 to-indigo-900/50 border border-indigo-500/40 shadow-lg shadow-indigo-500/10'
+                      : 'bg-gradient-to-r from-gray-700/50 to-gray-800/50 border border-gray-600/30 hover:border-gray-500/50'
                   }`}
                 >
-                  <div className="flex items-center gap-4">
-                    {getPositionIcon(entry.position)}
+                  {/* Efecto de brillo en hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 rounded-xl"></div>
+                  
+                  <div className="relative flex items-center gap-4">
+                    <div className="relative">
+                      {getPositionIcon(entry.position)}
+                      {entry.position <= 3 && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center text-xs">
+                          {entry.position === 1 ? '👑' : entry.position === 2 ? '⭐' : '🔥'}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex items-center gap-3">
                       {/* Avatar del usuario */}
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-600 flex items-center justify-center">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center ring-2 ring-gray-500/30 group-hover:ring-gray-400/50 transition-all duration-300">
                         {entry.user_photo ? (
                           <img
                             src={entry.user_photo}
@@ -412,33 +528,63 @@ const CompetitionDetailPage: React.FC = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
                         )}
+                        {entry.is_current_user && (
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                       <div>
-                        <p className={`font-medium ${
-                          entry.is_current_user ? 'text-indigo-400' : 'text-white'
+                        <p className={`font-semibold text-lg ${
+                          entry.is_current_user 
+                            ? 'bg-gradient-to-r from-indigo-400 to-indigo-300 bg-clip-text text-transparent' 
+                            : entry.position <= 3
+                            ? 'bg-gradient-to-r from-white to-gray-100 bg-clip-text text-transparent'
+                            : 'text-white'
                         }`}>
                           {entry.user_name}
                           {entry.is_current_user && (
-                            <span className="ml-2 text-xs bg-indigo-600 text-white px-2 py-1 rounded-full">
+                            <span className="ml-2 text-xs bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-2 py-1 rounded-full shadow-lg">
                               Tú
                             </span>
                           )}
                         </p>
-                        <p className="text-sm text-gray-400">Unido: {new Date(entry.join_date).toLocaleDateString('es-ES')}</p>
+                        <p className="text-sm text-gray-400 font-medium">
+                          Unido: {new Date(entry.join_date).toLocaleDateString('es-ES')}
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-bold ${
-                      entry.is_current_user ? 'text-indigo-400' : 'text-white'
-                    }`}>
-                      {entry.score}
-                    </p>
-                    <p className="text-sm text-gray-400">puntos</p>
+                  <div className="relative flex items-center gap-6">
+                    {/* Medalla separada */}
+                    {entry.position <= 3 && (
+                      <div className="text-3xl animate-pulse">
+                        {entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : '🥉'}
+                      </div>
+                    )}
+                    {/* Puntuación */}
+                    <div className="text-right">
+                      <p className={`text-2xl font-bold mb-1 ${
+                        entry.is_current_user 
+                          ? 'bg-gradient-to-r from-indigo-400 to-indigo-300 bg-clip-text text-transparent'
+                          : entry.position === 1
+                          ? 'bg-gradient-to-r from-yellow-400 to-yellow-300 bg-clip-text text-transparent'
+                          : entry.position === 2
+                          ? 'bg-gradient-to-r from-gray-300 to-gray-200 bg-clip-text text-transparent'
+                          : entry.position === 3
+                          ? 'bg-gradient-to-r from-orange-400 to-orange-300 bg-clip-text text-transparent'
+                          : 'text-white'
+                      }`}>
+                        {entry.score}
+                      </p>
+                      <p className="text-sm text-gray-400 font-medium">puntos</p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -447,33 +593,43 @@ const CompetitionDetailPage: React.FC = () => {
         </div>
 
         {/* Reglas de la competencia */}
-        <div className="mt-8 bg-gray-800 rounded-lg border border-gray-700 p-6">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Reglas de la Competencia
-          </h3>
-          <div className="space-y-3 text-gray-300">
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-              <p><strong>Tipo de Meta:</strong> {getCompetitionTypeLabel(competition.tipo_meta)}</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-              <p><strong>Objetivo:</strong> {competition.meta_objetivo} {competition.tipo_meta === 'MAX_HABITOS_DIA' ? 'hábitos por día' : competition.tipo_meta === 'MAX_RACHA' ? 'días consecutivos' : 'hábitos completados'}</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-              <p><strong>Valor por punto:</strong> {competition.valor}</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-              <p><strong>Duración:</strong> Del {formatDate(competition.fecha_inicio)} al {formatDate(competition.fecha_fin)}</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-              <p><strong>Puntuación:</strong> Se actualiza automáticamente basada en el progreso de tus hábitos</p>
+        <div className="relative mt-8 bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl border border-gray-700/50 backdrop-blur-sm overflow-hidden">
+          {/* Efectos de fondo */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-blue-500/5 opacity-50"></div>
+          <div className="absolute top-0 left-0 w-40 h-40 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative p-6 border-b border-gray-700/50">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500 bg-clip-text text-transparent flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              Reglas de la Competencia
+            </h3>
+          </div>
+          <div className="relative p-6">
+            <div className="space-y-4 text-gray-300">
+              <div className="group flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-700/30 to-gray-800/30 border border-gray-600/30 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.02]">
+                <div className="w-3 h-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full mt-2 flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300"></div>
+                <p className="leading-relaxed"><strong className="text-blue-400">Tipo de Meta:</strong> {getCompetitionTypeLabel(competition.tipo_meta)}</p>
+              </div>
+              <div className="group flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-700/30 to-gray-800/30 border border-gray-600/30 hover:border-indigo-500/50 transition-all duration-300 hover:scale-[1.02]">
+                <div className="w-3 h-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full mt-2 flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300"></div>
+                <p className="leading-relaxed"><strong className="text-indigo-400">Objetivo:</strong> {competition.meta_objetivo} {competition.tipo_meta === 'MAX_HABITOS_DIA' ? 'hábitos por día' : competition.tipo_meta === 'MAX_RACHA' ? 'días consecutivos' : 'hábitos completados'}</p>
+              </div>
+              <div className="group flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-700/30 to-gray-800/30 border border-gray-600/30 hover:border-purple-500/50 transition-all duration-300 hover:scale-[1.02]">
+                <div className="w-3 h-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full mt-2 flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300"></div>
+                <p className="leading-relaxed"><strong className="text-purple-400">Valor por punto:</strong> {competition.valor}</p>
+              </div>
+              <div className="group flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-700/30 to-gray-800/30 border border-gray-600/30 hover:border-green-500/50 transition-all duration-300 hover:scale-[1.02]">
+                <div className="w-3 h-3 bg-gradient-to-br from-green-500 to-green-600 rounded-full mt-2 flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300"></div>
+                <p className="leading-relaxed"><strong className="text-green-400">Duración:</strong> Del {formatDate(competition.fecha_inicio)} al {formatDate(competition.fecha_fin)}</p>
+              </div>
+              <div className="group flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-700/30 to-gray-800/30 border border-gray-600/30 hover:border-yellow-500/50 transition-all duration-300 hover:scale-[1.02]">
+                <div className="w-3 h-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-full mt-2 flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300"></div>
+                <p className="leading-relaxed"><strong className="text-yellow-400">Puntuación:</strong> Se actualiza automáticamente basada en el progreso de tus hábitos</p>
+              </div>
             </div>
           </div>
         </div>
