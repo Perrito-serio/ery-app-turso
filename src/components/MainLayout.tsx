@@ -28,8 +28,8 @@ const injectSidebarAnimations = () => {
         50% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.8), 0 0 30px rgba(99, 102, 241, 0.6); }
       }
       @keyframes shimmer {
-        0% { background-position: -200px 0; }
-        100% { background-position: 200px 0; }
+        0% { background-position: -100% 0; }
+        100% { background-position: 100% 0; }
       }
       @keyframes bounceIn {
         0% { opacity: 0; transform: scale(0.3); }
