@@ -136,82 +136,96 @@ export default function UserDashboardPage() {
         
         {/* --- Columna Principal (2/3 del ancho) --- */}
         <div className="xl:col-span-2 space-y-8">
-          {/* --- Tarjetas de Estadísticas Mejoradas --- */}
+          {/* --- Tarjetas de Estadísticas Mejoradas con Animaciones --- */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="group relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 p-6 rounded-xl shadow-xl border border-emerald-500/20 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/25">
+            <div className="group relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 p-6 rounded-xl shadow-xl border border-emerald-500/20 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/25 animate-in slide-in-from-left duration-700" style={{animationDelay: '0ms'}}>
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative flex items-center space-x-4">
-                <div className="p-3 bg-emerald-500/20 rounded-xl group-hover:bg-emerald-500/30 transition-colors duration-300">
+                <div className="p-3 bg-emerald-500/20 rounded-xl group-hover:bg-emerald-500/30 transition-colors duration-300 group-hover:scale-110 transform">
                   <LeafIcon />
                 </div>
                 <div>
                   <p className="text-sm text-emerald-200 font-medium">Hábitos Positivos</p>
-                  <p className="text-3xl font-bold text-white group-hover:text-emerald-100 transition-colors duration-300">{totalGoodHabits}</p>
+                  <p className="text-3xl font-bold text-white group-hover:text-emerald-100 transition-colors duration-300 group-hover:scale-110 transform">{totalGoodHabits}</p>
                 </div>
               </div>
             </div>
             
-            <div className="group relative bg-gradient-to-br from-red-600 via-red-700 to-red-800 p-6 rounded-xl shadow-xl border border-red-500/20 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-500/25">
+            <div className="group relative bg-gradient-to-br from-red-600 via-red-700 to-red-800 p-6 rounded-xl shadow-xl border border-red-500/20 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-500/25 animate-in slide-in-from-bottom duration-700" style={{animationDelay: '100ms'}}>
               <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative flex items-center space-x-4">
-                <div className="p-3 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors duration-300">
+                <div className="p-3 bg-red-500/20 rounded-xl group-hover:bg-red-500/30 transition-colors duration-300 group-hover:scale-110 transform">
                   <NoSmokingIcon />
                 </div>
                 <div>
                   <p className="text-sm text-red-200 font-medium">Adicciones</p>
-                  <p className="text-3xl font-bold text-white group-hover:text-red-100 transition-colors duration-300">{totalAddictions}</p>
+                  <p className="text-3xl font-bold text-white group-hover:text-red-100 transition-colors duration-300 group-hover:scale-110 transform">{totalAddictions}</p>
                 </div>
               </div>
             </div>
             
-            <div className="group relative bg-gradient-to-br from-yellow-600 via-amber-700 to-orange-800 p-6 rounded-xl shadow-xl border border-yellow-500/20 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/25">
+            <div className="group relative bg-gradient-to-br from-yellow-600 via-amber-700 to-orange-800 p-6 rounded-xl shadow-xl border border-yellow-500/20 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/25 animate-in slide-in-from-right duration-700" style={{animationDelay: '200ms'}}>
               <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative flex items-center space-x-4">
-                <div className="p-3 bg-yellow-500/20 rounded-xl group-hover:bg-yellow-500/30 transition-colors duration-300">
+                <div className="p-3 bg-yellow-500/20 rounded-xl group-hover:bg-yellow-500/30 transition-colors duration-300 group-hover:scale-110 transform">
                   <TrophyIcon />
                 </div>
                 <div>
                   <p className="text-sm text-yellow-200 font-medium">Logros</p>
-                  <p className="text-3xl font-bold text-white group-hover:text-yellow-100 transition-colors duration-300">{unlockedAchievementsCount}</p>
+                  <p className="text-3xl font-bold text-white group-hover:text-yellow-100 transition-colors duration-300 group-hover:scale-110 transform">{unlockedAchievementsCount}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* --- Pestañas Mejoradas --- */}
+          {/* --- Pestañas Mejoradas con Barra Deslizante --- */}
           <div className="bg-gradient-to-br from-gray-800 via-gray-850 to-gray-900 rounded-2xl shadow-2xl border border-gray-700/50 backdrop-blur-sm overflow-hidden">
-            <div className="flex bg-gray-900/50 border-b border-gray-700/50">
-              <button 
-                onClick={() => setActiveTab('habits')} 
-                className={`group relative flex-1 py-5 px-6 text-center font-semibold transition-all duration-300 ${activeTab === 'habits' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-700/50 hover:text-emerald-300'}`}
-              >
-                <span className="flex items-center justify-center gap-3 relative z-10">
-                  <ArrowTrendingUpIcon /> 
-                  <span className="font-bold">Hábitos Positivos</span>
-                </span>
-                {activeTab === 'habits' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-lg shadow-emerald-500/50"></div>
-                )}
-              </button>
-              <button 
-                onClick={() => setActiveTab('addictions')} 
-                className={`group relative flex-1 py-5 px-6 text-center font-semibold transition-all duration-300 ${activeTab === 'addictions' ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-700/50 hover:text-red-300'}`}
-              >
-                <span className="flex items-center justify-center gap-3 relative z-10">
-                  <ArrowTrendingDownIcon /> 
-                  <span className="font-bold">Adicciones</span>
-                </span>
-                {activeTab === 'addictions' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-400 to-red-500 shadow-lg shadow-red-500/50"></div>
-                )}
-              </button>
+            <div className="relative bg-gray-900/50 border-b border-gray-700/50 p-1">
+              {/* Indicador deslizante animado */}
+              <div 
+                className={`absolute top-1 bottom-1 w-1/2 bg-gradient-to-r rounded-lg transition-all duration-500 ease-out shadow-lg ${
+                  activeTab === 'habits' 
+                    ? 'left-1 from-emerald-500/80 to-emerald-600/80 shadow-emerald-500/25' 
+                    : 'left-1/2 from-red-500/80 to-red-600/80 shadow-red-500/25'
+                }`}
+              ></div>
+              
+              <div className="relative flex">
+                <button 
+                  onClick={() => setActiveTab('habits')} 
+                  className={`group relative flex-1 py-4 px-6 text-center font-semibold transition-all duration-300 z-10 rounded-lg ${
+                    activeTab === 'habits' 
+                      ? 'text-white transform scale-105' 
+                      : 'text-gray-400 hover:text-emerald-300 hover:scale-102'
+                  }`}
+                >
+                  <span className="flex items-center justify-center gap-3 transition-all duration-300">
+                    <ArrowTrendingUpIcon /> 
+                    <span className="font-bold">Hábitos Positivos</span>
+                  </span>
+                </button>
+                
+                <button 
+                  onClick={() => setActiveTab('addictions')} 
+                  className={`group relative flex-1 py-4 px-6 text-center font-semibold transition-all duration-300 z-10 rounded-lg ${
+                    activeTab === 'addictions' 
+                      ? 'text-white transform scale-105' 
+                      : 'text-gray-400 hover:text-red-300 hover:scale-102'
+                  }`}
+                >
+                  <span className="flex items-center justify-center gap-3 transition-all duration-300">
+                    <ArrowTrendingDownIcon /> 
+                    <span className="font-bold">Adicciones</span>
+                  </span>
+                </button>
+              </div>
             </div>
 
             <div className="p-8">
               {error && (
-                <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-5 rounded-xl mb-8 border border-red-500/30 shadow-lg">
+                <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-5 rounded-xl mb-8 border border-red-500/30 shadow-lg animate-in slide-in-from-top duration-500">
                   <div className="flex items-center gap-3">
-                    <svg className="w-6 h-6 text-red-200" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-6 h-6 text-red-200 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     <span className="font-medium">{error}</span>
@@ -221,13 +235,13 @@ export default function UserDashboardPage() {
               
               {/* --- Contenido de la pestaña de Hábitos Positivos --- */}
               {activeTab === 'habits' && (
-                <div className="space-y-8">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 animate-in slide-in-from-left duration-700">
                     <div>
                       <h3 className="text-2xl font-bold text-white mb-2">Progreso de Hábitos Positivos</h3>
                       <p className="text-gray-400">Mantén el impulso y construye rutinas saludables</p>
                     </div>
-                    <div className="flex items-center space-x-3 bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-3 rounded-full shadow-lg border border-emerald-500/30">
+                    <div className="flex items-center space-x-3 bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-3 rounded-full shadow-lg border border-emerald-500/30 hover:scale-105 transition-transform duration-300">
                       <FireIcon />
                       <div className="text-center">
                         <div className="text-white font-bold text-lg">{bestGoodStreak}</div>
@@ -238,14 +252,15 @@ export default function UserDashboardPage() {
                   
                   {goodHabits.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {goodHabits.map(habit => (
+                      {goodHabits.map((habit, index) => (
                         <div 
                           key={habit.id} 
-                          className={`group relative bg-gradient-to-br from-gray-800 via-gray-850 to-gray-900 p-6 rounded-2xl shadow-xl border transition-all duration-300 cursor-pointer overflow-hidden ${
+                          className={`group relative bg-gradient-to-br from-gray-800 via-gray-850 to-gray-900 p-6 rounded-2xl shadow-xl border transition-all duration-300 cursor-pointer overflow-hidden animate-in slide-in-from-bottom duration-500 ${
                             expandedHabitId === habit.id 
                               ? 'border-emerald-400/50 shadow-2xl shadow-emerald-500/20 scale-[1.02]' 
-                              : 'border-gray-700/50 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/10'
+                              : 'border-gray-700/50 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/10 hover:scale-[1.01]'
                           }`}
+                          style={{animationDelay: `${index * 100}ms`}}
                           onClick={(e) => { if (!e.defaultPrevented) toggleHabitExpansion(habit.id); }}
                         >
                           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -255,17 +270,17 @@ export default function UserDashboardPage() {
                             <div className="flex-1">
                               <h4 className="font-bold text-white text-lg mb-2 group-hover:text-emerald-100 transition-colors duration-300">{habit.nombre}</h4>
                               <div className="flex items-center gap-2 text-sm text-gray-400">
-                                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-medium">
+                                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-medium hover:bg-emerald-500/30 transition-colors duration-300">
                                   {habit.tipo === 'SI_NO' ? 'Sí/No' : 'Medible'}
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
                               <div className="text-right">
-                                <div className="text-2xl font-bold text-emerald-400">{habit.racha_actual}</div>
+                                <div className="text-2xl font-bold text-emerald-400 group-hover:scale-110 transition-transform duration-300">{habit.racha_actual}</div>
                                 <div className="text-xs text-gray-400 font-medium">días</div>
                               </div>
-                              <span className="text-emerald-400 transition-transform duration-300 group-hover:scale-110">
+                              <span className="text-emerald-400 transition-transform duration-300 group-hover:scale-110 hover:rotate-12">
                                 {expandedHabitId === habit.id ? (
                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
@@ -288,7 +303,7 @@ export default function UserDashboardPage() {
                                   <span className="font-bold text-emerald-400">{habit.racha_actual} días</span>
                                 </div>
                                 <span 
-                                  className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 text-sm font-medium cursor-pointer transition-all duration-300 hover:underline relative z-20 hover:bg-emerald-500/10 px-2 py-1 rounded-md"
+                                  className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 text-sm font-medium cursor-pointer transition-all duration-300 hover:underline relative z-20 hover:bg-emerald-500/10 px-2 py-1 rounded-md hover:translate-x-2 transform"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
@@ -296,7 +311,7 @@ export default function UserDashboardPage() {
                                   }}
                                 >
                                   Ver detalles
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                   </svg>
                                 </span>
@@ -307,10 +322,10 @@ export default function UserDashboardPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center text-gray-400 bg-gray-800 p-8 rounded-lg">
+                    <div className="text-center text-gray-400 bg-gray-800 p-8 rounded-lg animate-in slide-in-from-bottom duration-700">
                       <h3 className="text-xl font-semibold text-white mb-2">¡Es hora de empezar!</h3>
                       <p>Aún no tienes hábitos positivos para seguir.</p>
-                      <Link href="/habits" className="mt-4 inline-block px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md shadow-lg transition-colors">
+                      <Link href="/habits" className="mt-4 inline-block px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md shadow-lg transition-all duration-300 hover:scale-105 transform">
                         Crea tu primer hábito
                       </Link>
                     </div>
@@ -320,26 +335,33 @@ export default function UserDashboardPage() {
               
               {/* --- Contenido de la pestaña de Adicciones --- */}
               {activeTab === 'addictions' && (
-                <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-white">Control de Adicciones</h3>
-                    <div className="flex items-center space-x-2 bg-red-900 px-4 py-2 rounded-full">
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 animate-in slide-in-from-left duration-700">
+                    <div>
+                      <h3 className="text-2xl font-bold text-white mb-2">Control de Adicciones</h3>
+                      <p className="text-gray-400">Mantén el control y supera tus desafíos</p>
+                    </div>
+                    <div className="flex items-center space-x-3 bg-gradient-to-r from-red-600 to-red-700 px-6 py-3 rounded-full shadow-lg border border-red-500/30 hover:scale-105 transition-transform duration-300">
                       <FireIcon />
-                      <span className="text-white font-bold">{bestAddictionStreak} días</span>
+                      <div className="text-center">
+                        <div className="text-white font-bold text-lg">{bestAddictionStreak}</div>
+                        <div className="text-red-200 text-xs font-medium">días</div>
+                      </div>
                     </div>
                   </div>
                   
                   {addictions.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {addictions.map(habit => (
+                      {addictions.map((habit, index) => (
                         <div 
                           key={habit.id} 
-                          className={`group relative bg-gradient-to-br from-gray-800 via-gray-850 to-gray-900 p-6 rounded-2xl shadow-xl border transition-all duration-300 cursor-pointer overflow-hidden ${
+                          className={`group relative bg-gradient-to-br from-gray-800 via-gray-850 to-gray-900 p-6 rounded-2xl shadow-xl border transition-all duration-300 cursor-pointer overflow-hidden animate-in slide-in-from-bottom duration-500 ${
                             expandedHabitId === habit.id 
                               ? 'border-rose-400/50 shadow-2xl shadow-rose-500/20 scale-[1.02]' 
-                              : 'border-gray-700/50 hover:border-rose-500/30 hover:shadow-xl hover:shadow-rose-500/10'
+                              : 'border-gray-700/50 hover:border-rose-500/30 hover:shadow-xl hover:shadow-rose-500/10 hover:scale-[1.01]'
                           }`}
-                          onClick={() => toggleHabitExpansion(habit.id)}
+                          style={{animationDelay: `${index * 100}ms`}}
+                          onClick={(e) => { if (!e.defaultPrevented) toggleHabitExpansion(habit.id); }}
                         >
                           <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-rose-400 to-rose-600 rounded-r-full"></div>
@@ -348,17 +370,17 @@ export default function UserDashboardPage() {
                             <div className="flex-1">
                               <h4 className="font-bold text-white text-lg mb-2 group-hover:text-rose-100 transition-colors duration-300">{habit.nombre}</h4>
                               <div className="flex items-center gap-2 text-sm text-gray-400">
-                                <span className="px-2 py-1 bg-rose-500/20 text-rose-300 rounded-full text-xs font-medium">
+                                <span className="px-2 py-1 bg-rose-500/20 text-rose-300 rounded-full text-xs font-medium hover:bg-rose-500/30 transition-colors duration-300">
                                   Adicción
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
                               <div className="text-right">
-                                <div className="text-2xl font-bold text-rose-400">{habit.racha_actual}</div>
+                                <div className="text-2xl font-bold text-rose-400 group-hover:scale-110 transition-transform duration-300">{habit.racha_actual}</div>
                                 <div className="text-xs text-gray-400 font-medium">días</div>
                               </div>
-                              <span className="text-rose-400 transition-transform duration-300 group-hover:scale-110">
+                              <span className="text-rose-400 transition-transform duration-300 group-hover:scale-110 hover:rotate-12">
                                 {expandedHabitId === habit.id ? (
                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
@@ -381,7 +403,7 @@ export default function UserDashboardPage() {
                                   <span className="font-bold text-rose-400">{habit.racha_actual} días</span>
                                 </div>
                                 <span 
-                                  className="inline-flex items-center gap-2 text-rose-400 hover:text-rose-300 text-sm font-medium cursor-pointer transition-all duration-300 hover:underline relative z-20 hover:bg-rose-500/10 px-2 py-1 rounded-md"
+                                  className="inline-flex items-center gap-2 text-rose-400 hover:text-rose-300 text-sm font-medium cursor-pointer transition-all duration-300 hover:underline relative z-20 hover:bg-rose-500/10 px-2 py-1 rounded-md hover:translate-x-2 transform"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
@@ -389,7 +411,7 @@ export default function UserDashboardPage() {
                                   }}
                                 >
                                   Ver detalles
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                   </svg>
                                 </span>
@@ -400,10 +422,10 @@ export default function UserDashboardPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center text-gray-400 bg-gray-800 p-8 rounded-lg">
+                    <div className="text-center text-gray-400 bg-gray-800 p-8 rounded-lg animate-in slide-in-from-bottom duration-700">
                       <h3 className="text-xl font-semibold text-white mb-2">¡Excelente!</h3>
                       <p>No tienes adicciones registradas para controlar.</p>
-                      <Link href="/habits" className="mt-4 inline-block px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md shadow-lg transition-colors">
+                      <Link href="/habits" className="mt-4 inline-block px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md shadow-lg transition-all duration-300 hover:scale-105 transform">
                         Registrar una adicción
                       </Link>
                     </div>
