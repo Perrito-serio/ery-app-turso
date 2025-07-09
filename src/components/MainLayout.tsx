@@ -200,7 +200,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
           <Link href="/" className="text-2xl lg:text-3xl font-bold text-white logo-glow hover:text-indigo-400 transition-all duration-300 block text-center">
             Ery
           </Link>
-          <div className="mt-2 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-shimmer" style={{backgroundSize: '200px 100%'}}></div>
+          <div className="mt-2 mx-4 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-shimmer" style={{backgroundSize: '200px 100%'}}></div>
         </div>
         <nav className="mt-4 lg:mt-6 flex-1 px-2 lg:px-3 pb-20 lg:pb-0">
           {user && navLinks.map((link, index) => {
