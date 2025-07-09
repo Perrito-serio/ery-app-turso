@@ -238,7 +238,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
             );
           })}
         </nav>
-        <div className="absolute bottom-0 w-full border-t border-gray-700/50 p-3 lg:p-4 bg-gradient-to-t from-gray-900/90 to-transparent backdrop-blur-sm animate-fadeInUp">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-700/50 p-3 lg:p-4 bg-gradient-to-t from-gray-900/90 to-transparent backdrop-blur-sm animate-fadeInUp">
           {user && (
             <div className="flex items-center mb-3 lg:mb-4 p-2.5 lg:p-3 bg-gradient-to-r from-gray-800/60 via-indigo-900/30 to-gray-700/60 rounded-xl border border-gray-600/30 backdrop-blur-sm animate-bounceIn animate-background-pulse" style={{backgroundSize: '200% 200%'}}>
               <div className="relative">
