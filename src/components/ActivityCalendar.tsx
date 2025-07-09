@@ -137,115 +137,165 @@ const ActivityCalendar: React.FC = () => {
     return 'current-month'; // Si hay un registro pero 0 completados
   };
 
+  const getActivityLevel = (day: DayObject): { level: number; hasRelapse: boolean } => {
+    if (day.monthType !== 'current') return { level: 0, hasRelapse: false };
+    
+    const activity = activityData[day.fullDate];
+    if (!activity) return { level: 0, hasRelapse: false };
+    
+    if (activity.hasRelapse) return { level: 0, hasRelapse: true };
+    
+    const completions = activity.completions;
+    if (completions >= 5) return { level: 4, hasRelapse: false };
+    if (completions >= 3) return { level: 3, hasRelapse: false };
+    if (completions >= 1) return { level: 2, hasRelapse: false };
+    
+    return { level: 1, hasRelapse: false };
+  };
+
   return (
-    <>
-      <style jsx global>{`
-        /* --- ESTILOS MEJORADOS --- */
-        .ery-calendar-container {
-            --primary-color: #4338ca;
-            --secondary-color: #374151;
-            --tertiary-color: #9ca3af;
-            width: 100%;
-            padding: 1rem;
-            background-color: #1f2937;
-            border-radius: 0.75rem;
-            color: white;
-            position: relative; /* Para el overlay de carga */
-        }
-        .loading-overlay {
-            position: absolute;
-            inset: 0;
-            background-color: rgba(31, 41, 55, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-            border-radius: 0.75rem;
-            transition: opacity 0.3s;
-        }
-        .ery-calendar-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-        .ery-calendar-controls h2 { font-size: 1.25rem; font-weight: 600; }
-        .ery-calendar-controls button {
-            background: none; border: none; color: var(--tertiary-color);
-            cursor: pointer; padding: 0.5rem; border-radius: 9999px; transition: background-color 0.2s;
-        }
-        .ery-calendar-controls button:hover { background-color: var(--secondary-color); }
-        .ery-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; }
-        .ery-calendar-weekday { text-align: center; font-size: 0.875rem; font-weight: 500; color: var(--tertiary-color); }
-        .ery-calendar-day {
-            display: flex; justify-content: center; align-items: center;
-            height: 2.5rem; border-radius: 9999px; font-size: 0.875rem;
-            cursor: pointer; transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
-            position: relative; /* Para el punto de recaída */
-        }
-        .ery-calendar-day.current-month { color: #d1d5db; }
-        .ery-calendar-day.other-month { color: #4b5563; pointer-events: none; }
-        .ery-calendar-day.today { box-shadow: 0 0 0 2px var(--primary-color); font-weight: 700; }
-        .ery-calendar-day:not(.today):not(.other-month):hover { background-color: var(--secondary-color); transform: scale(1.1); }
-        
-        /* --- ESTILOS DEL HEATMAP --- */
-        .ery-calendar-day.heatmap-2 { background-color: rgba(34, 197, 94, 0.3); } /* Verde claro */
-        .ery-calendar-day.heatmap-3 { background-color: rgba(34, 197, 94, 0.6); }
-        .ery-calendar-day.heatmap-4 { background-color: rgba(34, 197, 94, 0.9); } /* Verde oscuro */
-        
-        .ery-calendar-day.relapse-day::after {
-            content: '';
-            position: absolute;
-            bottom: 6px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background-color: #ef4444; /* Rojo */
-        }
-      `}</style>
-
-      <div className="ery-calendar-container">
-        {isLoading && (
-            <div className="loading-overlay">
-                <p>Cargando actividad...</p>
-            </div>
-        )}
-        <section className="ery-calendar-controls">
-          <button onClick={handlePrevMonth} aria-label="Mes anterior">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-          </button>
-          <h2>{new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(currentDate)}</h2>
-          <button onClick={handleNextMonth} aria-label="Mes siguiente">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-          </button>
-        </section>
-
-        <section>
-          <div className="ery-calendar-grid mb-2">
-            {DAYS_OF_WEEK.map(day => ( <div key={day} className="ery-calendar-weekday">{day}</div> ))}
+    <div className="bg-gradient-to-br from-gray-800 via-gray-850 to-gray-900 p-8 rounded-2xl shadow-xl border border-gray-700/50 backdrop-blur-sm relative overflow-hidden">
+      {/* Overlay de carga */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-2xl">
+          <div className="flex items-center gap-3 text-white">
+            <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-lg font-medium">Cargando actividad...</span>
           </div>
-          <div className="space-y-2">
-            {calendarGrid.map((week, weekIndex) => (
-              <div key={weekIndex} className="ery-calendar-grid">
-                {week.map((dayObj, dayIndex) => (
-                  <div
-                    key={dayIndex}
-                    className={`ery-calendar-day 
-                      ${getDayStyle(dayObj)}
-                      ${dayObj.isToday ? 'today' : ''}
-                    `}
-                  >
-                    {dayObj.day}
-                  </div>
-                ))}
-              </div>
-            ))}
+        </div>
+      )}
+      
+      {/* Encabezado del calendario */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-white">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5a2.25 2.25 0 002.25-2.25m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5a2.25 2.25 0 012.25 2.25v7.5" />
+            </svg>
           </div>
-        </section>
+          <div>
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+              Calendario de Actividad
+            </h3>
+            <p className="text-gray-400 text-sm">Tu progreso diario visualizado</p>
+          </div>
+        </div>
+        
+        {/* Controles de navegación */}
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={handlePrevMonth}
+            className="p-3 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-all duration-300 hover:scale-110 group"
+            aria-label="Mes anterior"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          
+          <div className="text-center px-4">
+            <h2 className="text-xl font-bold text-white capitalize">
+              {new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(currentDate)}
+            </h2>
+          </div>
+          
+          <button 
+            onClick={handleNextMonth}
+            className="p-3 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl transition-all duration-300 hover:scale-110 group"
+            aria-label="Mes siguiente"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </button>
+        </div>
       </div>
-    </>
+
+      {/* Días de la semana */}
+      <div className="grid grid-cols-7 gap-2 mb-4">
+        {DAYS_OF_WEEK.map(day => (
+          <div key={day} className="text-center text-sm font-semibold text-gray-400 py-2">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Grilla del calendario */}
+      <div className="space-y-2">
+        {calendarGrid.map((week, weekIndex) => (
+          <div key={weekIndex} className="grid grid-cols-7 gap-2">
+            {week.map((dayObj, dayIndex) => {
+              const { level, hasRelapse } = getActivityLevel(dayObj);
+              return (
+                <div
+                  key={dayIndex}
+                  className={`
+                    relative h-12 rounded-xl flex items-center justify-center text-sm font-medium transition-all duration-300 cursor-pointer group
+                    ${
+                      dayObj.monthType === 'current'
+                        ? 'text-white hover:scale-110 hover:shadow-lg'
+                        : 'text-gray-600 pointer-events-none'
+                    }
+                    ${
+                      dayObj.isToday
+                        ? 'ring-2 ring-indigo-400 ring-offset-2 ring-offset-gray-800 font-bold'
+                        : ''
+                    }
+                    ${
+                      level === 0 && !hasRelapse && dayObj.monthType === 'current'
+                        ? 'bg-gray-700/50 hover:bg-gray-600/50'
+                        : level === 1
+                        ? 'bg-gray-600/50'
+                        : level === 2
+                        ? 'bg-emerald-500/30 hover:bg-emerald-500/40'
+                        : level === 3
+                        ? 'bg-emerald-500/60 hover:bg-emerald-500/70'
+                        : level === 4
+                        ? 'bg-emerald-500/90 hover:bg-emerald-500'
+                        : ''
+                    }
+                  `}
+                >
+                  {dayObj.day}
+                  {hasRelapse && (
+                    <div className="absolute bottom-1 right-1 w-2 h-2 bg-red-500 rounded-full shadow-lg animate-pulse"></div>
+                  )}
+                  {level > 0 && !hasRelapse && (
+                    <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm"></div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Leyenda */}
+      <div className="mt-8 pt-6 border-t border-gray-700/50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-400 font-medium">Menos</span>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-gray-700/50 rounded-sm"></div>
+              <div className="w-3 h-3 bg-emerald-500/30 rounded-sm"></div>
+              <div className="w-3 h-3 bg-emerald-500/60 rounded-sm"></div>
+              <div className="w-3 h-3 bg-emerald-500/90 rounded-sm"></div>
+            </div>
+            <span className="text-sm text-gray-400 font-medium">Más</span>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span>Recaída</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+              <span>Actividad</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
