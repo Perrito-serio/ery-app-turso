@@ -107,6 +107,8 @@ export default function HabitsPage() {
         </button>
       </div>
 
+
+
       {/* Pestañas para cambiar de vista */}
       <div className="mb-6 border-b border-gray-700">
         <nav className="-mb-px flex space-x-6" aria-label="Tabs">
@@ -287,8 +289,8 @@ const CreateHabitModal: React.FC<{ onClose: () => void; onHabitCreated: (habit: 
   };
 
   return (
-      <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
+      <div className="fixed inset-0 bg-black/75 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md relative">
               <h2 className="text-2xl font-semibold text-white mb-4">Crear Nuevo Hábito</h2>
               {error && <div className="bg-red-700 text-white p-3 rounded mb-4">{error}</div>}
               <form onSubmit={handleSubmit} className="space-y-4">

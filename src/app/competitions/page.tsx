@@ -365,8 +365,8 @@ const CompetitionsPage: React.FC = () => {
 
         {/* Modal de crear competencia */}
         {showCreateForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/75 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
+            <div className="relative bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-white">Nueva Competencia</h2>
                 <button

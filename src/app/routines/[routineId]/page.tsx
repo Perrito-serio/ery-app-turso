@@ -216,8 +216,8 @@ const AddHabitModal: React.FC<AddHabitModalProps> = ({ availableHabits, onClose,
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
-      <div className="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-700">
+    <div className="fixed inset-0 bg-black/75 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-700 relative">
         <h2 className="text-2xl font-semibold text-white mb-4">Añadir Hábito a la Rutina</h2>
         {availableHabits.length > 0 ? (
           <form onSubmit={handleSubmit}>
