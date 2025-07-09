@@ -6,6 +6,98 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 
+// Inyectar animaciones CSS
+const injectSidebarAnimations = () => {
+  if (typeof document !== 'undefined') {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-100%); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      @keyframes glow {
+        0%, 100% { box-shadow: 0 0 5px rgba(99, 102, 241, 0.5); }
+        50% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.8), 0 0 30px rgba(99, 102, 241, 0.6); }
+      }
+      @keyframes shimmer {
+        0% { background-position: -200px 0; }
+        100% { background-position: 200px 0; }
+      }
+      @keyframes bounceIn {
+        0% { opacity: 0; transform: scale(0.3); }
+        50% { opacity: 1; transform: scale(1.05); }
+        70% { transform: scale(0.9); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+      @keyframes backgroundPulse {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      .animate-slideInLeft { animation: slideInLeft 0.6s ease-out; }
+      .animate-fadeInUp { animation: fadeInUp 0.6s ease-out; }
+      .animate-pulse-custom { animation: pulse 2s infinite; }
+      .animate-glow { animation: glow 2s infinite; }
+      .animate-shimmer { animation: shimmer 2s infinite; }
+      .animate-bounceIn { animation: bounceIn 0.8s ease-out; }
+      .animate-background-pulse { animation: backgroundPulse 3s ease-in-out infinite; }
+      .sidebar-gradient {
+        background: linear-gradient(135deg, #1f2937 0%, #111827 50%, #0f172a 100%);
+        position: relative;
+      }
+      .sidebar-gradient::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 100%);
+        pointer-events: none;
+      }
+      .nav-link-hover {
+        position: relative;
+        overflow: hidden;
+      }
+      .nav-link-hover::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
+        transition: left 0.5s;
+      }
+      .nav-link-hover:hover::before {
+        left: 100%;
+      }
+      .logo-glow {
+        text-shadow: 0 0 10px rgba(99, 102, 241, 0.5), 0 0 20px rgba(99, 102, 241, 0.3);
+        transition: all 0.3s ease;
+      }
+      .logo-glow:hover {
+        text-shadow: 0 0 15px rgba(99, 102, 241, 0.8), 0 0 25px rgba(99, 102, 241, 0.5), 0 0 35px rgba(99, 102, 241, 0.3);
+        transform: scale(1.05);
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }
+  return () => {};
+};
+
 // --- Iconos ---
 const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.5 1.5 0 012.122 0l8.954 8.955M2.25 12l8.954 8.955A1.5 1.5 0 0012.63 21V15.75A2.25 2.25 0 0114.88 13.5h0A2.25 2.25 0 0117.13 15.75V21a1.5 1.5 0 001.426-.955L21.75 12M2.25 12h19.5" /></svg>;
 const MyDashboardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0v-1.5m0 1.5v-1.5m0 1.5v3.75m0-3.75h1.5m-1.5 0h-1.5m-1.5 0v3.75m0-3.75h1.5m0 0h1.5m-1.5 0v-1.5m0 1.5v-1.5m-3.75-3v-1.5m0 1.5v-1.5" /></svg>;
@@ -34,6 +126,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingInvitations, setPendingInvitations] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Inyectar animaciones al montar el componente
+  useEffect(() => {
+    const cleanup = injectSidebarAnimations();
+    setIsLoaded(true);
+    return cleanup;
+  }, []);
 
   // Cargar invitaciones pendientes
   useEffect(() => {
@@ -86,14 +186,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
 
   return (
     <div className="flex h-screen bg-gray-900 text-white">
-      <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-gray-800 shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:block`}>
-        <div className="p-5 border-b border-gray-700">
-          <Link href="/" className="text-2xl font-bold text-white hover:text-indigo-400">
+      <aside className={`fixed inset-y-0 left-0 z-30 w-64 sidebar-gradient shadow-2xl transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-500 ease-in-out md:relative md:translate-x-0 md:block ${isLoaded ? 'animate-slideInLeft' : ''} backdrop-blur-sm border-r border-gray-700/50`}>
+        <div className="p-6 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/80 to-gray-900/80 backdrop-blur-sm animate-fadeInUp">
+          <Link href="/" className="text-3xl font-bold text-white logo-glow hover:text-indigo-400 transition-all duration-300 block text-center">
             Ery
           </Link>
+          <div className="mt-2 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full animate-shimmer" style={{backgroundSize: '200px 100%'}}></div>
         </div>
-        <nav className="mt-6 flex-1">
-          {user && navLinks.map((link) => {
+        <nav className="mt-6 flex-1 px-3">
+          {user && navLinks.map((link, index) => {
             const hasAccess = link.roles.some(role => userRoles.includes(role));
             if (!hasAccess) {
               return null;
@@ -103,37 +204,56 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
                 key={link.text}
                 href={link.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center justify-between px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200 ${isActive(link.href) ? 'bg-gray-700 text-white border-l-4 border-indigo-500' : ''}`}
+                className={`group flex items-center justify-between mx-2 my-1 px-4 py-3 text-gray-300 rounded-xl transition-all duration-300 transform hover:scale-105 nav-link-hover animate-fadeInUp ${
+                  isActive(link.href) 
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg animate-glow border border-indigo-400/50' 
+                    : 'hover:bg-gradient-to-r hover:from-gray-700/80 hover:to-gray-600/80 hover:text-white hover:shadow-md'
+                }`}
+                style={{animationDelay: `${index * 0.1}s`}}
               >
-                <div className="flex items-center">
-                  {link.icon}
-                  {link.text}
+                <div className="flex items-center relative z-10">
+                  <div className={`transition-all duration-300 ${isActive(link.href) ? 'animate-pulse-custom' : 'group-hover:scale-110'}`}>
+                    {link.icon}
+                  </div>
+                  <span className="font-medium">{link.text}</span>
                 </div>
                 {link.hasNotification && pendingInvitations > 0 && (
-                  <div className="flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse">
+                  <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full animate-bounceIn shadow-lg">
                     {pendingInvitations > 9 ? '9+' : pendingInvitations}
                   </div>
+                )}
+                {isActive(link.href) && (
+                  <div className="absolute right-2 w-2 h-2 bg-white rounded-full animate-pulse-custom"></div>
                 )}
               </Link>
             );
           })}
         </nav>
-        <div className="absolute bottom-0 w-full border-t border-gray-700 p-4">
+        <div className="absolute bottom-0 w-full border-t border-gray-700/50 p-4 bg-gradient-to-t from-gray-900/90 to-transparent backdrop-blur-sm animate-fadeInUp">
           {user && (
-            <div className="flex items-center mb-3">
-              <img src={user.image || `https://ui-avatars.com/api/?name=${user.name || user.email}&background=random`} alt="Avatar" className="w-10 h-10 rounded-full mr-3" />
-              <div>
-                <p className="text-sm font-medium">{user.name || user.email}</p>
-                <p className="text-xs text-gray-400">{userRoles.join(', ')}</p>
+            <div className="flex items-center mb-4 p-3 bg-gradient-to-r from-gray-800/60 via-indigo-900/30 to-gray-700/60 rounded-xl border border-gray-600/30 backdrop-blur-sm animate-bounceIn animate-background-pulse" style={{backgroundSize: '200% 200%'}}>
+              <div className="relative">
+                <img 
+                  src={user.image || `https://ui-avatars.com/api/?name=${user.name || user.email}&background=random`} 
+                  alt="Avatar" 
+                  className="w-12 h-12 rounded-full mr-3 border-2 border-indigo-400/50 shadow-lg transition-all duration-300 hover:scale-110 hover:border-indigo-400" 
+                />
+                <div className="absolute -bottom-0.5 -left-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800 animate-pulse-custom shadow-lg"></div>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-white">{user.name || user.email}</p>
+                <p className="text-xs text-indigo-300 font-medium">{userRoles.join(', ')}</p>
               </div>
             </div>
           )}
           {user && (
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-600 hover:text-white rounded-md transition-colors duration-200 border border-red-500 hover:border-red-600"
+              className="w-full flex items-center justify-center px-4 py-3 text-sm font-semibold text-red-300 hover:text-white bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600 hover:to-red-700 rounded-xl transition-all duration-300 border border-red-500/50 hover:border-red-400 transform hover:scale-105 hover:shadow-lg group"
             >
-              <LogoutIcon />
+              <div className="transition-transform duration-300 group-hover:rotate-12">
+                <LogoutIcon />
+              </div>
               Cerrar Sesión
             </button>
           )}
@@ -141,19 +261,21 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, pageTitle = "Ery App"
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-gray-800 shadow-md md:shadow-none">
+        <header className="bg-gradient-to-r from-gray-800 via-gray-850 to-gray-900 shadow-xl border-b border-gray-700/50 backdrop-blur-sm">
           <div className="flex items-center justify-between px-6 py-4">
             <button 
               onClick={() => setSidebarOpen(true)}
-              className="text-gray-300 focus:outline-none md:hidden"
+              className="text-gray-300 hover:text-white focus:outline-none md:hidden transition-all duration-300 transform hover:scale-110 hover:rotate-180 p-2 rounded-lg hover:bg-gray-700/50"
               aria-label="Abrir menú"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="text-xl font-semibold text-white">{pageTitle}</h1>
-            <div className="flex items-center"></div>
+            <h1 className="text-xl font-bold text-white bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent animate-fadeInUp">{pageTitle}</h1>
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse-custom"></div>
+            </div>
           </div>
         </header>
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-900 p-6 md:p-8">
